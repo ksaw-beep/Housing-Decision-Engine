@@ -1131,6 +1131,15 @@ function calculate() {
     rc.classList.remove('access-locked');
   } else {
     rc.classList.add('access-locked');
+    // Make the ::before CTA button clickable — delegated listener on each locked section
+    rc.querySelectorAll('.paid-only').forEach(el => {
+      if (!el.dataset.stripeListenerAttached) {
+        el.dataset.stripeListenerAttached = 'true';
+        el.addEventListener('click', () => {
+          window.location.href = 'https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00';
+        });
+      }
+    });
   }
 
   // === ANALYSIS STATUS BANNER (Phase 2) ===
