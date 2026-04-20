@@ -1842,7 +1842,7 @@ a:focus-visible,
   position: relative;
   user-select: none;
 }
-.results-content.access-locked .paid-only > * {
+.results-content.access-locked .paid-only > *:not(.paid-unlock-cta) {
   filter: blur(4px);
   pointer-events: none;
   opacity: 0.5;
