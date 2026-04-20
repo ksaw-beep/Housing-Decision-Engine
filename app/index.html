@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housing Decision Engine</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+  <!-- PAID UNLOCK BANNER (shown after verified Stripe session) -->
+  <div class="paid-banner" id="paidBanner" hidden role="status" aria-live="polite">
+    <div class="paid-banner-icon" aria-hidden="true">✅</div>
+    <div class="paid-banner-text">
+      <div class="paid-banner-title">Your full decision plan is unlocked</div>
+      <div class="paid-banner-sub">You're now viewing the complete analysis including your personalized recommendation, break-even timing, and long-term wealth comparison.</div>
+    </div>
+  </div>
+
+  <!-- PREVIEW BANNER (shown when ?paid=true but session cannot be verified) -->
+  <div class="preview-access-banner" id="previewBanner" hidden role="status">
+    <span class="preview-access-icon" aria-hidden="true">🔒</span>
+    <span>You're viewing the preview. <a href="https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00" class="preview-access-link">Unlock the full analysis — $19</a></span>
+  </div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <img src="../assets/logo.png" alt="Housing Decision Engine" class="header-logo">
+    <div class="header-left">
+      <h1>Your Personalized Housing Decision Plan</h1>
+      <p class="subtitle">Based on your inputs, here's what makes the most financial sense.</p>
+    </div>
+    <div class="header-right">
+      <div class="scenario-summary" id="scenarioSummary">
+        <div class="scenario-item"><span class="scenario-label">Home Price</span><span class="scenario-value" id="sumHomePrice">—</span></div>
+        <div class="scenario-item"><span class="scenario-label">Down Payment</span><span class="scenario-value" id="sumDownPct">—</span></div>
+        <div class="scenario-item"><span class="scenario-label">Interest Rate</span><span class="scenario-value" id="sumRate">—</span></div>
+      </div>
+      <button class="btn-reset" onclick="resetForm()">Reset</button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-grid">
+
+    <!-- LEFT: INPUTS -->
+    <div class="inputs-panel">
+
+      <!-- MODE TOGGLE + GUIDANCE -->
+      <div class="mode-toggle-wrap">
+        <p class="mode-helper">Start with a few inputs. Add more detail only if you want a more precise answer.</p>
+        <div class="mode-toggle" role="tablist" aria-label="Input detail level">
+          <button type="button" class="mode-btn mode-btn-active" id="modeBasicBtn" role="tab" aria-selected="true" onclick="setInputMode('basic')">Basic</button>
+          <button type="button" class="mode-btn" id="modeAdvBtn" role="tab" aria-selected="false" onclick="setInputMode('advanced')">Advanced</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-icon">🏠</span>
+          <h2 class="panel-title">Property Details</h2>
+        </div>
+        <div class="input-group">
+          <label for="homePrice">Home Price</label>
+          <div class="input-wrap dollar">
+            <input type="number" id="homePrice" value="350000" min="0" step="5000">
+          </div>
+        </div>
+        <div class="input-row-2">
+          <div class="input-group">
+            <label for="downPaymentPct">Down Payment</label>
+            <div class="input-wrap percent">
+              <input type="number" id="downPaymentPct" value="10" min="0" max="100" step="0.5">
+            </div>
+            <span class="input-hint" id="downPaymentAmt">$35,000</span>
+          </div>
+          <div class="input-group">
+            <label for="interestRate">Interest Rate</label>
+            <div class="input-wrap percent">
+              <input type="number" id="interestRate" value="6.75" min="0" max="15" step="0.125">
+            </div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="timeHorizon">How long do you plan to own?</label>
+          <div class="input-wrap years">
+            <input type="number" id="timeHorizon" value="5" min="1" max="30" step="1">
+          </div>
+          <span class="input-bench">Used for break-even, wealth comparison, and outlook.</span>
+        </div>
+        <div class="input-group advanced-only">
+          <label for="propertyState">Property State</label>
+          <div class="input-wrap select">
+            <select id="propertyState"></select>
+          </div>
+          <span class="input-bench">Benchmark starting point only — use your best estimate for the specific property when possible.</span>
+        </div>
+        <div class="input-row-2 advanced-only">
+          <div class="input-group">
+            <label for="closingCostsPct">Closing Costs</label>
+            <div class="input-wrap percent">
+              <input type="number" id="closingCostsPct" value="3" min="0" max="10" step="0.5">
+            </div>
+            <span class="input-hint" id="closingCostsAmt">$10,500</span>
+            <span class="input-bench">Typical range is 2–5% of home price.</span>
+          </div>
+          <div class="input-group">
+            <label for="sellingCostsPct">Selling Costs (% of home price)</label>
+            <div class="input-wrap percent">
+              <input type="number" id="sellingCostsPct" value="6" min="0" max="15" step="0.5">
+            </div>
+            <span class="input-bench">Agent commissions + transaction costs. Typical: 5–8%.</span>
+          </div>
+        </div>
+        <div class="input-row-2 advanced-only">
+          <div class="input-group">
+            <label for="loanTerm">Loan Term</label>
+            <div class="input-wrap years">
+              <input type="number" id="loanTerm" value="30" min="1" max="50">
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="homeAppreciation">Appreciation</label>
+            <div class="input-wrap percent">
+              <input type="number" id="homeAppreciation" value="3" min="-5" max="15" step="0.5">
+            </div>
+            <span class="input-bench">Long-run U.S. average: ~3–4% per year</span>
+          </div>
+        </div>
+        <div class="input-group advanced-only">
+          <label for="creditProfile">Credit Score Range</label>
+          <div class="input-wrap select">
+            <select id="creditProfile">
+              <option value="760+">760+</option>
+              <option value="740-759" selected>740–759</option>
+              <option value="700-739">700–739</option>
+              <option value="660-699">660–699</option>
+              <option value="below660">Below 660</option>
+            </select>
+          </div>
+          <span class="input-bench" id="pmiBench">Est. PMI: —</span>
+          <span class="input-bench">Used to estimate PMI for planning purposes — not a lender quote.</span>
+        </div>
+        <div class="input-group advanced-only">
+          <label for="loanType">Loan Type</label>
+          <div class="input-wrap select">
+            <select id="loanType">
+              <option value="Conventional" selected>Conventional</option>
+              <option value="FHA">FHA</option>
+            </select>
+          </div>
+          <span class="input-bench" id="loanTypeBench">Conventional: PMI may be removable once sufficient equity is reached.</span>
+        </div>
+      </div>
+
+      <div class="panel advanced-only">
+        <div class="panel-header">
+          <span class="panel-icon">💰</span>
+          <h2 class="panel-title">Ownership Costs</h2>
+        </div>
+        <div class="input-row-2">
+          <div class="input-group">
+            <label for="propertyTax">Property Tax Rate (annual % of home value)
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-describedby="tip-propertytax" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-propertytax">Enter your best estimate. Property taxes vary significantly by location. Use the state dropdown above as a starting point.</span>
+              </span>
+            </label>
+            <div class="input-wrap percent">
+              <input type="number" id="propertyTax" value="1.2" min="0" max="5" step="0.1">
+            </div>
+            <span class="input-hint" id="propertyTaxAmt">$350/mo</span>
+            <span class="input-bench" id="propertyTaxBench">State average: —</span>
+          </div>
+          <div class="input-group">
+            <label for="insurance">Insurance (Annual)</label>
+            <div class="input-wrap dollar">
+              <input type="number" id="insurance" value="1800" min="0" step="100">
+            </div>
+            <span class="input-bench">Typical range: ~$1,200–$2,500/year for single-family</span>
+          </div>
+        </div>
+        <div class="input-row-2">
+          <div class="input-group">
+            <label for="maintenance">Maintenance</label>
+            <div class="input-wrap percent">
+              <input type="number" id="maintenance" value="1" min="0" max="5" step="0.25">
+            </div>
+            <span class="input-hint" id="maintenanceAmt">$292/mo</span>
+            <span class="input-bench">Common planning rule: ~1% of home value per year</span>
+          </div>
+          <div class="input-group">
+            <label for="hoa">HOA (Monthly)</label>
+            <div class="input-wrap dollar">
+              <input type="number" id="hoa" value="0" min="0" step="25">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-icon">🔑</span>
+          <h2 class="panel-title">Renting Scenario</h2>
+        </div>
+        <div class="input-group">
+          <label for="currentRent">Current Monthly Rent</label>
+          <div class="input-wrap dollar">
+            <input type="number" id="currentRent" value="1800" min="0" step="50">
+          </div>
+        </div>
+        <div class="input-row-2 advanced-only">
+          <div class="input-group">
+            <label for="rentGrowth">Annual Rent Growth</label>
+            <div class="input-wrap percent">
+              <input type="number" id="rentGrowth" value="3" min="0" max="15" step="0.5">
+            </div>
+            <span class="input-bench">Long-run U.S. average: ~3% per year</span>
+          </div>
+          <div class="input-group">
+            <label for="investReturn">Investment Return (%)</label>
+            <div class="input-wrap percent">
+              <input type="number" id="investReturn" value="7" min="0" max="20" step="0.5">
+            </div>
+            <span class="input-bench">Historical market returns vary. Try 3–10%.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel advanced-only">
+        <div class="panel-header">
+          <span class="panel-icon">🏘️</span>
+          <h2 class="panel-title">House Hack (Multi-Family)</h2>
+        </div>
+        <div class="input-group">
+          <label for="rentalIncome">Gross Monthly Rental Income (Other Units)</label>
+          <div class="input-wrap dollar">
+            <input type="number" id="rentalIncome" value="0" min="0" step="50">
+          </div>
+          <span class="input-hint">Enter gross rent before vacancy or expenses. Set $0 for single-family.</span>
+          <span class="input-bench" id="rentalIncomeHelper" style="display:none;">This is your gross rent — vacancy rate and operating costs (below) reduce it to a net figure before it enters the calculation. Default: 5% vacancy, 25% operating costs.</span>
+        </div>
+        <div class="input-row-2" id="hackRealismRow" style="display:none;">
+          <div class="input-group">
+            <label for="vacancyPct">Vacancy Rate
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-describedby="tip-vacancy" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-vacancy">Percentage of time the unit sits empty between tenants. Even a few weeks per year adds up. Typical range: 5–10%.</span>
+              </span>
+            </label>
+            <div class="input-wrap percent">
+              <input type="number" id="vacancyPct" value="5" min="0" max="100" step="1">
+            </div>
+            <span class="input-bench">Typical: 5–10%</span>
+          </div>
+          <div class="input-group">
+            <label for="expenseRatioPct">Operating Costs (% of rent)
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-describedby="tip-expratio" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-expratio">The share of rental income consumed by repairs, turnover, management fees, and other operating costs. 25% is a common planning estimate. Does not include mortgage or taxes.</span>
+              </span>
+            </label>
+            <div class="input-wrap percent">
+              <input type="number" id="expenseRatioPct" value="25" min="0" max="100" step="1">
+            </div>
+            <span class="input-bench">Typical: 20–30%</span>
+          </div>
+        </div>
+        <div class="input-group" id="moveOutGroup" style="display:none;">
+          <label for="moveOutYear">When do you plan to move out and rent your unit?</label>
+          <div class="input-wrap select">
+            <select id="moveOutYear">
+              <option value="0" selected>Never (I stay in the property)</option>
+              <option value="1">After 1 year</option>
+              <option value="2">After 2 years</option>
+              <option value="3">After 3 years</option>
+              <option value="5">After 5 years</option>
+            </select>
+          </div>
+          <span class="input-bench">When you move out, your unit also becomes a rental. The model estimates full-property rental income at ~1.75× your current unit income — you'll see the effect on cash flow in the wealth chart.</span>
+          <div class="move-out-warn" id="moveOutWarn" role="status" aria-live="polite" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="panel advanced-only">
+        <div class="panel-header">
+          <span class="panel-icon">📋</span>
+          <h2 class="panel-title">Affordability Check (Optional)</h2>
+        </div>
+        <div class="input-row-2">
+          <div class="input-group">
+            <label for="annualIncome">Annual Household Income</label>
+            <div class="input-wrap dollar">
+              <input type="number" id="annualIncome" value="" min="0" step="1000" placeholder="e.g. 90000">
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="monthlyDebt">Monthly Debt Payments</label>
+            <div class="input-wrap dollar">
+              <input type="number" id="monthlyDebt" value="" min="0" step="50" placeholder="e.g. 450">
+            </div>
+            <span class="input-bench">Car loans, student loans, credit cards, etc.</span>
+          </div>
+        </div>
+        <span class="input-bench">This does NOT determine approval, but lenders commonly evaluate DTI when qualifying borrowers.</span>
+      </div>
+
+      <div class="form-errors" id="formErrors" role="alert" aria-atomic="true" aria-live="assertive" style="display:none;"></div>
+
+      <button class="btn-calculate" onclick="calculate()">Analyze My Options</button>
+
+      <div class="scenario-controls">
+        <button class="btn-scenario" id="btnSaveA" onclick="saveScenario('A')">Save as Scenario A <span class="scen-status" id="scenAStatus"></span></button>
+        <button class="btn-scenario" id="btnSaveB" onclick="saveScenario('B')" style="display:none;">Save as Scenario B <span class="scen-status" id="scenBStatus"></span></button>
+        <button class="btn-scenario btn-scenario-clear" onclick="clearScenarios()">Clear</button>
+      </div>
+      <p class="scenario-help">Save two scenarios to compare them side by side.</p>
+
+    </div>
+
+    <!-- RIGHT: RESULTS -->
+    <div class="results-panel" id="resultsPanel">
+
+      <div class="results-placeholder" id="resultsPlaceholder">
+        <div class="placeholder-icon">📊</div>
+        <p>Enter your details and click <strong>Analyze My Options</strong> to see your personalized comparison.</p>
+      </div>
+
+      <div class="results-content" id="resultsContent" style="display:none;">
+
+        <!-- ========== ANALYSIS STATUS (Phase 2 — role=status, aria-live) ========== -->
+        <div class="analysis-status" id="analysisStatus" role="status" aria-live="polite" aria-atomic="true">
+          <span class="analysis-status-icon" aria-hidden="true">✓</span>
+          <span id="analysisStatusText">Analysis updated</span>
+        </div>
+
+        <!-- ========== YOUR DECISION PLAN ========== -->
+        <div class="decision-plan paid-only" id="decisionPlan">
+          <div class="dp-header">
+            <div class="dp-icon" id="dpIcon">🏠</div>
+            <div>
+              <div class="dp-label">Your Decision Plan</div>
+              <div class="dp-verdict" id="dpVerdict"></div>
+            </div>
+            <div class="dp-confidence" id="dpConfidence">
+              <div class="dp-conf-label">Confidence</div>
+              <div class="dp-conf-badge" id="dpConfBadge"></div>
+            </div>
+          </div>
+          <div class="dp-horizon" id="dpHorizon"></div>
+          <div class="dp-conf-explanation" id="dpConfExplanation"></div>
+          <div class="dp-narrative">
+            <div class="dp-narr-block">
+              <div class="dp-narr-label">Key Tradeoff</div>
+              <div class="dp-narr-text" id="dpTradeoff"></div>
+            </div>
+            <div class="dp-narr-block">
+              <div class="dp-narr-label">Time-Based Insight</div>
+              <div class="dp-narr-text" id="dpTimeInsight"></div>
+            </div>
+            <div class="dp-narr-block">
+              <div class="dp-narr-label">Risk & Sensitivity</div>
+              <div class="dp-narr-text" id="dpRiskNote"></div>
+            </div>
+          </div>
+          <div class="dp-assumption" id="dpAssumption">Analysis assumes renters invest savings at 7% annual return (broad market historical average)</div>
+          <div class="dp-reason" id="dpReason"></div>
+          <div class="dp-metrics">
+            <div class="dp-metric">
+              <div class="dp-metric-label">Monthly Difference</div>
+              <div class="dp-metric-value" id="dpMonthlyDiff"></div>
+            </div>
+            <div class="dp-metric">
+              <div class="dp-metric-label">Annual Impact</div>
+              <div class="dp-metric-value" id="dpAnnualDiff"></div>
+            </div>
+            <div class="dp-metric">
+              <div class="dp-metric-label" id="dpWealthImpactLabel">5-Year Wealth Impact
+                <span class="tip-wrap">
+                  <button type="button" class="tip-btn" aria-describedby="tip-wealthimpact" onclick="tipToggle(this)">?</button>
+                  <span class="tip-content" role="tooltip" id="tip-wealthimpact">The total dollar difference in your net worth between buying and renting + investing the difference, over your selected time horizon.</span>
+                </span>
+              </div>
+              <div class="dp-metric-value" id="dpWealthImpact"></div>
+            </div>
+          </div>
+          <div class="dp-action" id="dpAction"></div>
+          <div class="dp-disclaimer">This tool compares the financial outcomes of renting vs buying based on your assumptions. It does not determine mortgage qualification. Lenders evaluate income, debts, and debt-to-income (DTI) when determining approval.</div>
+        </div>
+
+        <!-- ========== SCENARIO COMPARISON ========== -->
+        <div class="panel compare-panel paid-only" id="comparePanel" style="display:none;">
+          <h3 class="panel-title">Scenario Comparison</h3>
+          <p class="panel-subtitle">Side-by-side comparison of the two scenarios you saved.</p>
+          <table class="compare-table">
+            <thead>
+              <tr><th></th><th>Scenario A</th><th>Scenario B</th></tr>
+            </thead>
+            <tbody id="compareBody"></tbody>
+          </table>
+          <div class="compare-summary" id="compareSummary"></div>
+        </div>
+
+        <!-- ========== KPI CARDS ========== -->
+        <div class="kpi-row">
+          <div class="kpi-card" style="--accent: var(--blue)">
+            <div class="kpi-label">Mortgage Payment (Principal &amp; Interest)
+              <span class="kpi-sublabel">Principal + interest only — does not include tax, insurance, or PMI</span>
+            </div>
+            <div class="kpi-value" id="kpiMortgage">—</div>
+          </div>
+          <div class="kpi-card" style="--accent: var(--amber)">
+            <div class="kpi-label">Total Monthly Cost of Owning
+              <span class="kpi-sublabel">P&amp;I + property tax + insurance + maintenance + HOA + mortgage insurance</span>
+            </div>
+            <div class="kpi-value" id="kpiOwnership">—</div>
+          </div>
+          <div class="kpi-card" style="--accent: var(--green)">
+            <div class="kpi-label">Monthly Out-of-Pocket Cost
+              <span class="kpi-sublabel" id="kpiNetSublabel">Total ownership minus any rental income offset</span>
+            </div>
+            <div class="kpi-value" id="kpiNet">—</div>
+          </div>
+          <div class="kpi-card" style="--accent: var(--purple)">
+            <div class="kpi-label">Current Monthly Rent</div>
+            <div class="kpi-value" id="kpiRent">—</div>
+          </div>
+        </div>
+
+        <!-- ========== AFFORDABILITY / DTI ========== -->
+        <div class="panel affordability-panel" id="affordabilityPanel" style="display:none;">
+          <h3 class="panel-title">Affordability Check <span class="panel-title-sub">(Informational Only)</span></h3>
+          <p class="panel-subtitle">Your estimated debt-to-income (DTI) ratio is shown below for reference. <strong>This does not determine mortgage approval.</strong> Lenders weigh many factors — income, credit, assets, and loan type — beyond DTI. General guidelines: <strong>≤ 36%</strong> generally stronger; <strong>36–45%</strong> may still qualify depending on credit, reserves, and program; <strong>&gt; 45%</strong> stretch territory — harder to qualify under most conventional programs.</p>
+          <div class="dti-row">
+            <div class="dti-metric">
+              <div class="dti-label">Debt-to-Income Ratio</div>
+              <div class="dti-value" id="dtiValue">—</div>
+            </div>
+            <div class="dti-badge-wrap">
+              <span class="dti-badge" id="dtiBadge">—</span>
+            </div>
+          </div>
+          <div class="dti-breakdown" id="dtiBreakdown"></div>
+          <div class="dti-warn" id="dtiWarn" role="status" aria-live="polite" style="display:none;"></div>
+        </div>
+
+        <!-- ========== CASH TO CLOSE ========== -->
+        <div class="panel cash-to-close-panel" id="cashToClosePanel">
+          <h3 class="panel-title">Total Cash to Close</h3>
+          <table class="breakdown-table">
+            <tbody>
+              <tr><td>Down Payment</td><td class="val" id="ctcDP"></td></tr>
+              <tr><td>Closing Costs</td><td class="val" id="ctcClosing"></td></tr>
+              <tr class="total-row"><td>Total Cash Needed</td><td class="val" id="ctcTotal"></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ========== COST COMPARISON BAR ========== -->
+        <div class="panel comparison-panel">
+          <h3 class="panel-title">Monthly Cost Comparison</h3>
+          <div class="bar-group">
+            <div class="bar-row">
+              <span class="bar-label">Rent</span>
+              <div class="bar-track"><div class="bar-fill rent-bar" id="barRent"></div></div>
+              <span class="bar-amount" id="barRentAmt"></span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Buy</span>
+              <div class="bar-track"><div class="bar-fill buy-bar" id="barBuy"></div></div>
+              <span class="bar-amount" id="barBuyAmt"></span>
+            </div>
+            <div class="bar-row" id="hackRow" style="display:none;">
+              <span class="bar-label">House Hack</span>
+              <div class="bar-track"><div class="bar-fill hack-bar" id="barHack"></div></div>
+              <span class="bar-amount" id="barHackAmt"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== NET WEALTH COMPARISON (dynamic horizon) ========== -->
+        <div class="panel wealth-panel paid-only">
+          <h3 class="panel-title" id="wealthPanelTitle">Net Financial Position — 5 Years</h3>
+          <p class="panel-subtitle" id="wealthPanelSubtitle">What's your total financial outcome after 5 years in each scenario?</p>
+          <div class="wealth-grid">
+            <div class="wealth-card wealth-buy" id="wealthBuyCard">
+              <div class="wealth-card-label">If You Buy</div>
+              <div class="wealth-card-items">
+                <div class="wealth-line">
+                  <span>Home equity built</span>
+                  <span class="wealth-pos" id="wBuyEquity"></span>
+                </div>
+                <div class="wealth-line">
+                  <span>Down payment spent</span>
+                  <span class="wealth-neg" id="wBuyDP"></span>
+                </div>
+                <div class="wealth-line">
+                  <span>Closing costs</span>
+                  <span class="wealth-neg" id="wBuyClosing"></span>
+                </div>
+                <div class="wealth-line" id="wBuySellingRow" style="display:none;">
+                  <span>Selling costs at exit</span>
+                  <span class="wealth-neg" id="wBuySelling"></span>
+                </div>
+                <div class="wealth-line">
+                  <span id="wBuyCostLabel">Monthly costs paid (5yr)</span>
+                  <span class="wealth-neg" id="wBuyCost"></span>
+                </div>
+                <div class="wealth-line total">
+                  <span>Net position
+                    <span class="tip-wrap">
+                      <button type="button" class="tip-btn" aria-describedby="tip-buynet" onclick="tipToggle(this)">?</button>
+                      <span class="tip-content" role="tooltip" id="tip-buynet">Your total wealth from buying over your time horizon: equity and appreciation gained, minus all cash spent (down payment, closing costs, monthly ownership costs).</span>
+                    </span>
+                  </span>
+                  <span id="wBuyNet"></span>
+                </div>
+              </div>
+            </div>
+            <div class="wealth-card wealth-rent" id="wealthRentCard">
+              <div class="wealth-card-label">If You Rent <span class="wealth-card-tag">&amp; Invest</span></div>
+              <div class="wealth-card-items">
+                <div class="wealth-line" id="wRentDPRow">
+                  <span>Capital invested (instead of cash to close)</span>
+                  <span class="wealth-pos" id="wRentDPGains"></span>
+                </div>
+                <div class="wealth-line" id="wRentSavingsRow">
+                  <span>Monthly savings invested</span>
+                  <span class="wealth-pos" id="wRentSavingsGains"></span>
+                </div>
+                <div class="wealth-line">
+                  <span id="wRentCostLabel">Total rent paid (5yr)</span>
+                  <span class="wealth-neg" id="wRentCost"></span>
+                </div>
+                <div class="wealth-line total">
+                  <span>Net position
+                    <span class="tip-wrap">
+                      <button type="button" class="tip-btn" aria-describedby="tip-rentnet" onclick="tipToggle(this)">?</button>
+                      <span class="tip-content" role="tooltip" id="tip-rentnet">Your total wealth from renting over your time horizon: investment gains (down payment + monthly savings invested) minus all rent paid.</span>
+                    </span>
+                  </span>
+                  <span id="wRentNet"></span>
+                </div>
+              </div>
+              <div class="wealth-card-note" id="wRentReturnNote">Assumes 7% annual return on investments</div>
+            </div>
+          </div>
+          <div class="wealth-verdict" id="wVerdict"></div>
+        </div>
+
+        <!-- ========== WEALTH OVER TIME (CHART) ========== -->
+        <div class="panel chart-panel paid-only">
+          <h3 class="panel-title">Wealth Over Time</h3>
+          <p class="panel-subtitle">How does your net financial position evolve year by year?</p>
+          <div class="chart-container" id="chartContainer">
+            <canvas id="wealthChart"></canvas>
+            <div class="chart-tooltip" id="chartTooltip"></div>
+            <div class="chart-crosshair" id="chartCrosshair"></div>
+          </div>
+          <div class="chart-legend">
+            <span class="chart-legend-item"><span class="chart-swatch swatch-buy"></span> Buying</span>
+            <span class="chart-legend-item"><span class="chart-swatch swatch-rent"></span> Renting</span>
+          </div>
+          <div class="chart-callouts" id="chartCallouts"></div>
+          <div class="chart-insight" id="chartInsight"></div>
+          <div class="chart-insight" id="transitionInsight" style="display:none;"></div>
+          <button type="button" class="btn-data-table" id="btnChartDataTable" onclick="toggleChartDataTable()">Show data table</button>
+          <div class="chart-data-table-wrap" id="chartDataTableWrap" style="display:none;">
+            <table class="chart-data-table">
+              <thead><tr><th>Year</th><th>Buy Net</th><th>Rent Net</th><th>Difference</th></tr></thead>
+              <tbody id="chartDataTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ========== BREAK-EVEN ANALYSIS ========== -->
+        <div class="panel breakeven-panel paid-only">
+          <h3 class="panel-title">Break-Even Analysis
+            <span class="tip-wrap">
+              <button type="button" class="tip-btn" aria-describedby="tip-breakeven" onclick="tipToggle(this)">?</button>
+              <span class="tip-content" role="tooltip" id="tip-breakeven">The month when buying overtakes renting in total net wealth — accounting for equity, appreciation, and all investment returns. Before this point, renting and investing comes out ahead on net wealth.</span>
+            </span>
+          </h3>
+          <p class="panel-subtitle">Break-even is when Buy Net Position overtakes Rent Net Position — accounting for equity, appreciation, investment returns, and all cash outflows.</p>
+          <p class="panel-subtitle be-explainer">Break-even occurs when buying surpasses renting in total net wealth, including all costs and investment returns.</p>
+          <div class="be-result" id="beResult">
+            <div class="be-timeline" id="beTimeline"></div>
+            <div class="be-bar-wrap" id="beBarWrap">
+              <div class="be-bar-track">
+                <div class="be-bar-fill" id="beBarFill"></div>
+                <div class="be-bar-marker" id="beBarMarker"></div>
+              </div>
+              <div class="be-bar-labels">
+                <span>Year 0</span>
+                <span>Year 5</span>
+                <span>Year 10</span>
+              </div>
+            </div>
+            <div class="be-detail" id="beDetail"></div>
+            <div class="be-horizon-warn" id="beHorizonWarn" style="display:none;"></div>
+            <table class="be-snapshot">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Year 0</th>
+                  <th>Year 1</th>
+                  <th id="beSnapHdrHorizon">Year 5</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="be-snap-label">Buy net</td>
+                  <td class="be-snap-val" id="beSnapBuy0"></td>
+                  <td class="be-snap-val" id="beSnapBuy1"></td>
+                  <td class="be-snap-val" id="beSnapBuy5"></td>
+                </tr>
+                <tr>
+                  <td class="be-snap-label">Rent net</td>
+                  <td class="be-snap-val" id="beSnapRent0"></td>
+                  <td class="be-snap-val" id="beSnapRent1"></td>
+                  <td class="be-snap-val" id="beSnapRent5"></td>
+                </tr>
+                <tr class="be-snap-diff-row">
+                  <td class="be-snap-label">Difference</td>
+                  <td class="be-snap-val" id="beSnapDiff0"></td>
+                  <td class="be-snap-val" id="beSnapDiff1"></td>
+                  <td class="be-snap-val" id="beSnapDiff5"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ========== SENSITIVITY ANALYSIS ========== -->
+        <div class="panel sensitivity-panel paid-only">
+          <h3 class="panel-title">Sensitivity Analysis</h3>
+          <p class="panel-subtitle">What would need to change to shift the recommendation?</p>
+          <div class="sens-grid">
+            <div class="sens-card" id="sensRateCard">
+              <div class="sens-icon" id="sensRateIcon">📉</div>
+              <div class="sens-question" id="sensRateTitle">Interest Rate Threshold</div>
+              <div class="sens-answer" id="sensRate"></div>
+              <div class="sens-detail" id="sensRateDetail"></div>
+            </div>
+            <div class="sens-card" id="sensPriceCard">
+              <div class="sens-icon" id="sensPriceIcon">🏷️</div>
+              <div class="sens-question" id="sensPriceTitle">Home Price Threshold</div>
+              <div class="sens-answer" id="sensPrice"></div>
+              <div class="sens-detail" id="sensPriceDetail"></div>
+            </div>
+          </div>
+          <div class="sens-summary" id="sensSummary"></div>
+        </div>
+
+        <!-- ========== COST BREAKDOWN TABLE ========== -->
+        <div class="panel">
+          <h3 class="panel-title">Ownership Cost Breakdown</h3>
+          <table class="breakdown-table">
+            <tbody>
+              <tr><td>Mortgage (P&I)</td><td class="val" id="bdMortgage"></td></tr>
+              <tr><td>Property Tax</td><td class="val" id="bdTax"></td></tr>
+              <tr><td>Insurance</td><td class="val" id="bdInsurance"></td></tr>
+              <tr><td>Maintenance</td><td class="val" id="bdMaintenance"></td></tr>
+              <tr><td>HOA</td><td class="val" id="bdHOA"></td></tr>
+              <tr id="bdPMIRow"><td id="bdPMILabel">PMI</td><td class="val" id="bdPMI"></td></tr>
+              <tr class="total-row"><td>Total Ownership</td><td class="val" id="bdTotal"></td></tr>
+              <tr id="bdRentalRow" style="display:none;"><td>Rental Income</td><td class="val green" id="bdRental"></td></tr>
+              <tr id="bdNetRow" style="display:none;" class="total-row"><td>Net Monthly Cost</td><td class="val" id="bdNet"></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ========== HORIZON OUTLOOK (dynamic) ========== -->
+        <div class="panel">
+          <h3 class="panel-title" id="outlookPanelTitle">5-Year Outlook</h3>
+          <div class="outlook-grid">
+            <div class="outlook-item">
+              <div class="outlook-label" id="olRentLabel">Total Rent Paid (5yr)</div>
+              <div class="outlook-value red" id="ol5Rent"></div>
+            </div>
+            <div class="outlook-item">
+              <div class="outlook-label" id="olOwnLabel">Total Ownership Cost (5yr)</div>
+              <div class="outlook-value" id="ol5Own"></div>
+            </div>
+            <div class="outlook-item">
+              <div class="outlook-label">Est. Home Equity Built</div>
+              <div class="outlook-value green" id="ol5Equity"></div>
+            </div>
+            <div class="outlook-item">
+              <div class="outlook-label" id="olValueLabel">Est. Home Value (5yr)</div>
+              <div class="outlook-value" id="ol5Value"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== NEXT STEPS ========== -->
+        <div class="panel next-steps-panel">
+          <h3 class="panel-title">Recommended Next Steps</h3>
+          <p class="panel-subtitle">Use this analysis as a starting point — then validate with real professionals before making an offer.</p>
+          <div class="next-steps-grid">
+            <div class="next-step-item">
+              <div class="next-step-icon">📋</div>
+              <div class="next-step-content">
+                <div class="next-step-title">Get a Loan Estimate</div>
+                <div class="next-step-body">Request Loan Estimates from at least 3 lenders to compare real rates, fees, and closing costs — not just advertised rates. <a href="https://www.consumerfinance.gov/ask-cfpb/what-is-a-loan-estimate-en-1995/" target="_blank" rel="noopener noreferrer" class="next-step-link">What is a Loan Estimate? →</a></div>
+              </div>
+            </div>
+            <div class="next-step-item">
+              <div class="next-step-icon">🏦</div>
+              <div class="next-step-content">
+                <div class="next-step-title">Compare Lender Offers</div>
+                <div class="next-step-body">Even a 0.25% rate difference on a $350K loan saves thousands over 5 years. <a href="https://www.consumerfinance.gov/owning-a-home/explore-rates/" target="_blank" rel="noopener noreferrer" class="next-step-link">Explore rates →</a></div>
+              </div>
+            </div>
+            <div class="next-step-item">
+              <div class="next-step-icon">🧭</div>
+              <div class="next-step-content">
+                <div class="next-step-title">Talk to a HUD-Approved Housing Counselor</div>
+                <div class="next-step-body">Free or low-cost guidance from a government-approved professional — especially valuable for first-time buyers. <a href="https://www.hud.gov/findacounselor" target="_blank" rel="noopener noreferrer" class="next-step-link">Find a counselor →</a></div>
+              </div>
+            </div>
+            <div class="next-step-item">
+              <div class="next-step-icon">📊</div>
+              <div class="next-step-content">
+                <div class="next-step-title">Stress Test Your Assumptions</div>
+                <div class="next-step-body">Run this analysis again with rates 1% higher, appreciation 0%, or a shorter time horizon. See how robust your decision is before committing.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== HOW THIS DECISION IS CALCULATED ========== -->
+        <div class="panel methodology-panel">
+          <h3 class="panel-title">How This Decision Is Calculated</h3>
+          <p class="panel-subtitle">Every number below is driven by your inputs — nothing is hardcoded. Change an input and re-analyze to see how the numbers shift.</p>
+          <div class="meth-grid">
+            <div class="meth-block">
+              <div class="meth-label">1. Upfront Costs</div>
+              <div class="meth-text">Down payment + closing costs. This is the cash you commit on day one. A renter keeps this cash and invests it — so it's a real cost of ownership, not just a "transfer."</div>
+              <div class="meth-value" id="methUpfront">Run analysis to see your numbers</div>
+            </div>
+            <div class="meth-block">
+              <div class="meth-label">2. Monthly Cost of Owning</div>
+              <div class="meth-text">Mortgage P&amp;I + property tax + insurance + maintenance + HOA + PMI or FHA MIP (if applicable). All of these flow into the monthly cost — not just the mortgage payment.</div>
+              <div class="meth-value" id="methMonthly">—</div>
+            </div>
+            <div class="meth-block">
+              <div class="meth-label">3. Investment Impact (Renter's Side)</div>
+              <div class="meth-text">A renter can invest two things: (a) the upfront cash not spent on the home, and (b) the monthly savings if owning costs more. Both grow at your investment return rate over your time horizon. This is what makes renting and investing sometimes competitive with ownership.</div>
+              <div class="meth-value" id="methInvest">—</div>
+            </div>
+            <div class="meth-block">
+              <div class="meth-label">4. Exit Costs</div>
+              <div class="meth-text">Agent commissions and transaction fees come out of your home's value when you sell. These are subtracted from equity before computing your net position — a step most simple calculators skip.</div>
+              <div class="meth-value" id="methExit">—</div>
+            </div>
+            <div class="meth-block meth-block-full">
+              <div class="meth-label">5. Net Wealth Comparison — the recommendation</div>
+              <div class="meth-text">
+                <div><strong>Buy net wealth =</strong> (equity built: down payment + principal paid + appreciation) minus (selling costs + total monthly ownership costs + closing costs paid).</div>
+                <div style="margin-top:6px;"><strong>Rent net wealth =</strong> (investment gains: upfront cash invested + monthly savings invested at your return rate) minus (all rent paid over the period).</div>
+                <div style="margin-top:6px;">The recommendation is whichever path produces the larger net position over your planned time horizon. Confidence level reflects how far you are from the tipping point.</div>
+              </div>
+              <div class="meth-value" id="methNet">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== ASSUMPTIONS ========== -->
+        <div class="panel assumptions-panel">
+          <h3 class="panel-title">Assumptions & Notes</h3>
+          <ul class="assumptions-list">
+            <li>Mortgage calculated using standard amortization formula</li>
+            <li>Closing costs are included as a % of home price (user-editable, default 3%) and added to the total upfront cash outflow for both break-even and wealth comparisons</li>
+            <li>Property tax uses state-level benchmark estimates that can vary significantly by county or municipality — override with your own number anytime</li>
+            <li>Conventional PMI is estimated based on credit score range and applied when down payment is below 20%, and may be removable once sufficient equity is reached. FHA loans use an ongoing mortgage insurance premium (MIP, ~0.55%/yr) that typically applies for the life of the loan depending on down payment — this is for planning purposes only, not a lender quote</li>
+            <li>Investment return assumption (user-adjustable, default 7%) is not guaranteed — it represents a broad market historical average for a diversified equity portfolio. Lower it to model a more conservative scenario</li>
+            <li>House hack rental income is adjusted for vacancy rate and "Operating Costs (% of rent)" — default 5% vacancy and 25% operating costs — so projections don't overstate net cash flow. These two controls reduce gross rental income to an estimated net figure</li>
+            <li>Move-out transition: when you indicate you'll move out of your unit, the model assumes your unit also becomes a rental, increasing effective income to ~1.75× of the current unit estimate to approximate whole-property rental. This causes a visible step change in the wealth chart at that year</li>
+            <li>Affordability / DTI check is informational only — it does NOT determine mortgage approval. Lenders evaluate income, credit, assets, loan type, and many other factors. DTI benchmarks: ≤ 36% generally stronger; 36–45% may still qualify depending on credit and reserves; &gt; 45% stretch territory — consult a lender</li>
+            <li>Home appreciation and rent growth are estimates, not guarantees</li>
+            <li>Maintenance estimated as a % of home value per year</li>
+            <li>Equity = down payment + principal paid + appreciation gain, minus selling costs (agent commissions + transaction fees, default 6%) applied to the projected home value at exit</li>
+            <li>Renter invests the full cash-to-close (down payment + closing costs) as a lump sum, plus monthly savings at the chosen return rate</li>
+            <li>Break-even compares cumulative net wealth including investment returns</li>
+            <li>Sensitivity analysis uses binary search to find thresholds — directionally accurate</li>
+            <li>Benchmarks shown next to inputs are planning guides based on long-run averages — not exact quotes for your specific home, lender, or insurer</li>
+            <li>This is a planning tool, not a lender quote or financial advice — consult a financial advisor for major decisions</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <p>Housing Decision Engine &mdash; For educational purposes. Not financial advice.</p>
+    <p class="footer-contact">Contact: <a href="mailto:homebuyerdecisionengine@gmail.com">homebuyerdecisionengine@gmail.com</a></p>
+  </footer>
+
+</div>
+
+<script src="script.js"></script>
+<script>
+/**
+ * PAID ACCESS GATING (Phase 5)
+ * ─────────────────────────────
+ * Strategy:
+ *  1. Read ?paid=true and ?session_id=cs_xxx from the URL (Stripe success redirect).
+ *  2. If session_id is present, verify it server-side via the Netlify Function.
+ *     Only show the "unlocked" banner if verification succeeds.
+ *  3. If no session_id (e.g. someone just typed ?paid=true), show a non-alarming
+ *     "preview" banner instead — never unlock paid content based on URL alone.
+ *  4. If verification fails or the function is unavailable, fall back to preview banner.
+ *
+ * Stripe redirect URL to set in your Stripe dashboard:
+ *   Success URL: https://your-site.netlify.app/app/?paid=true&session_id={CHECKOUT_SESSION_ID}
+ *
+ * ENVIRONMENT VARIABLE required in Netlify:
+ *   STRIPE_SECRET_KEY — your Stripe secret key (never exposed to the browser)
+ */
+(function () {
+  const STORAGE_KEY = 'hde_paid_session_v1';
+
+  const params   = new URLSearchParams(window.location.search);
+  const isPaid   = params.get('paid') === 'true';
+  const urlSessionId = params.get('session_id') || '';
+
+  const paidBanner    = document.getElementById('paidBanner');
+  const previewBanner = document.getElementById('previewBanner');
+
+  // ── Early exit: access already granted out-of-band (e.g. ?dev=true) ──────
+  // script.js sets window.paidAccessVerified = true when ?dev=true is present.
+  // In that case the content is already unlocked — don't show either banner.
+  // (Real paid users go through Path A or B below, which DO show the paid banner.)
+  if (window.paidAccessVerified === true) {
+    if (paidBanner)    paidBanner.hidden = true;
+    if (previewBanner) previewBanner.hidden = true;
+    return;
+  }
+
+  // ── localStorage helpers (wrapped for private-mode / disabled-storage safety) ──
+  function storageGet() {
+    try { return window.localStorage.getItem(STORAGE_KEY); }
+    catch (_) { return null; }
+  }
+  function storageSet(value) {
+    try { window.localStorage.setItem(STORAGE_KEY, value); }
+    catch (_) { /* private mode — silently skip */ }
+  }
+  function storageClear() {
+    try { window.localStorage.removeItem(STORAGE_KEY); }
+    catch (_) { /* ignore */ }
+  }
+
+  function showPaidUnlocked(customerEmail) {
+    if (paidBanner) {
+      paidBanner.hidden = false;
+      if (customerEmail) {
+        var sub = paidBanner.querySelector('.paid-banner-sub');
+        if (sub) sub.textContent = 'Unlocked for ' + customerEmail + '. Full analysis — recommendation, break-even, and wealth chart — is active.';
+      }
+    }
+    if (previewBanner) previewBanner.hidden = true;
+    // Unlock paid content sections
+    if (typeof unlockPaidAccess === 'function') unlockPaidAccess();
+  }
+
+  function showPreviewMode(reason) {
+    if (previewBanner) previewBanner.hidden = false;
+    if (paidBanner) paidBanner.hidden = true;
+    if (reason) console.info('[HDE] Preview mode:', reason);
+  }
+
+  // ── Verify a session ID server-side ──────────────────────────────────────
+  // Returns a Promise resolving to { paid: boolean, customer: string|null, error?: string }
+  // Does NOT apply fallbacks — caller decides what to do on paid=false or error.
+  function verifySession(sid) {
+    return fetch('/.netlify/functions/verify-session?session_id=' + encodeURIComponent(sid))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        return {
+          paid: !!(data && data.ok && data.paid),
+          customer: (data && data.customer) || null,
+          error: (data && data.error) || null,
+        };
+      });
+  }
+
+  // ── PATH A: URL says ?paid=true&session_id=cs_xxx (Stripe success redirect) ──
+  if (isPaid && urlSessionId && urlSessionId.startsWith('cs_')) {
+    verifySession(urlSessionId)
+      .then(function (result) {
+        if (result.paid) {
+          storageSet(urlSessionId);           // persist for future visits
+          showPaidUnlocked(result.customer);
+        } else {
+          storageClear();
+          showPreviewMode('Stripe verification returned paid=false: ' + (result.error || 'unknown'));
+        }
+      })
+      .catch(function (err) {
+        // User just completed Stripe checkout — a temporary network hiccup here
+        // shouldn't lock them out. Best-effort unlock + save so next visit re-verifies.
+        console.warn('[HDE] Session verification unavailable on Stripe return, fallback unlock:', err.message);
+        storageSet(urlSessionId);
+        showPaidUnlocked(null);
+      });
+    return;
+  }
+
+  // ?paid=true with no/invalid session_id is treated as spoofed — ignore and continue below.
+  if (isPaid) {
+    console.info('[HDE] ?paid=true present but session_id missing/invalid — ignoring URL param.');
+  }
+
+  // ── PATH B: no valid URL token → check localStorage for a prior session ──
+  const storedSessionId = storageGet();
+  if (storedSessionId && storedSessionId.startsWith('cs_')) {
+    verifySession(storedSessionId)
+      .then(function (result) {
+        if (result.paid) {
+          showPaidUnlocked(result.customer);
+        } else {
+          // Session no longer valid (shouldn't happen for paid sessions, but defensive)
+          storageClear();
+          showPreviewMode('Stored session failed re-verification: ' + (result.error || 'unknown'));
+        }
+      })
+      .catch(function (err) {
+        // Network error on a stored session — do NOT auto-unlock. No recent
+        // payment event to justify the fallback. Keep the stored id so the
+        // next page load can retry; just show preview mode for now.
+        console.warn('[HDE] Stored-session verification unavailable:', err.message);
+        showPreviewMode('Verification unavailable — try reloading');
+      });
+    return;
+  }
+
+  // ── PATH C: nothing to verify → normal preview ──
+  showPreviewMode('no paid param or stored session');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housing Decision Engine — Free Preview</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="preview-page">
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="header">
+    <img src="../assets/logo.png" alt="Housing Decision Engine" class="header-logo">
+    <div class="header-left">
+      <h1>Free Preview — Monthly Cost Estimate</h1>
+      <p class="subtitle">Enter your details to see a real monthly cost breakdown.</p>
+    </div>
+  </header>
+
+  <!-- PREVIEW NOTE -->
+  <div class="preview-note" role="note">
+    <span class="preview-note-icon" aria-hidden="true">ℹ️</span>
+    <span>Preview uses a simplified model. The full analysis adds closing costs, selling costs, time horizon modeling, loan type, sensitivity analysis, and the full buy-vs-rent recommendation.</span>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-grid preview-grid">
+
+    <!-- LEFT: INPUTS -->
+    <div class="inputs-panel">
+
+      <!-- Error summary -->
+      <div class="form-errors" id="pvFormErrors" role="alert" aria-atomic="true" style="display:none;"></div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-icon" aria-hidden="true">🏠</span>
+          <h2 class="panel-title">Your Numbers</h2>
+        </div>
+
+        <div class="input-group">
+          <label for="pvHomePrice">Home Price</label>
+          <div class="input-wrap dollar">
+            <input type="number" id="pvHomePrice" value="350000" min="1" step="5000"
+                   aria-describedby="pvDownHint">
+          </div>
+          <span class="input-hint" id="pvDownHint" aria-live="polite"></span>
+        </div>
+
+        <div class="input-row-2">
+          <div class="input-group">
+            <label for="pvDownPct">Down Payment (%)</label>
+            <div class="input-wrap percent">
+              <input type="number" id="pvDownPct" value="10" min="0" max="100" step="0.5"
+                     aria-describedby="pvDownAmt">
+            </div>
+            <span class="input-hint" id="pvDownAmt" aria-live="polite"></span>
+          </div>
+          <div class="input-group">
+            <label for="pvRate">Interest Rate (%)</label>
+            <div class="input-wrap percent">
+              <input type="number" id="pvRate" value="6.75" min="0" max="20" step="0.125">
+            </div>
+          </div>
+        </div>
+
+        <div class="input-row-2">
+          <div class="input-group">
+            <label for="pvTerm">Loan Term (years)</label>
+            <div class="input-wrap years">
+              <input type="number" id="pvTerm" value="30" min="1" max="50" step="1">
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="pvRent">Current Monthly Rent</label>
+            <div class="input-wrap dollar">
+              <input type="number" id="pvRent" value="1800" min="0" step="50">
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced accordion -->
+        <div class="adv-accordion">
+          <button type="button" class="adv-accordion-trigger" id="advTrigger"
+                  aria-expanded="false" aria-controls="advContent"
+                  onclick="toggleAdvanced()">
+            <span class="adv-trigger-text">Advanced assumptions</span>
+            <span class="adv-trigger-icon" aria-hidden="true">▾</span>
+          </button>
+          <div class="adv-accordion-content" id="advContent" hidden>
+            <p class="adv-note">These defaults are reasonable estimates. Override only if you know your specific numbers.</p>
+            <div class="input-row-2">
+              <div class="input-group">
+                <label for="pvTax">Property Tax Rate (%/yr)</label>
+                <div class="input-wrap percent">
+                  <input type="number" id="pvTax" value="1.2" min="0" max="5" step="0.1">
+                </div>
+                <span class="input-bench">U.S. average: ~1.1–1.2%</span>
+              </div>
+              <div class="input-group">
+                <label for="pvInsurance">Home Insurance ($/yr)</label>
+                <div class="input-wrap dollar">
+                  <input type="number" id="pvInsurance" value="1800" min="0" step="100">
+                </div>
+                <span class="input-bench">Typical: $1,200–$2,500/yr</span>
+              </div>
+            </div>
+            <div class="input-row-2">
+              <div class="input-group">
+                <label for="pvMaint">Maintenance (%/yr of value)</label>
+                <div class="input-wrap percent">
+                  <input type="number" id="pvMaint" value="1" min="0" max="5" step="0.25">
+                </div>
+                <span class="input-bench">Common rule: ~1% per year</span>
+              </div>
+              <div class="input-group">
+                <label for="pvHOA">HOA ($/month)</label>
+                <div class="input-wrap dollar">
+                  <input type="number" id="pvHOA" value="0" min="0" step="25">
+                </div>
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="pvClosing">Closing Cost Estimate (%)</label>
+              <div class="input-wrap percent">
+                <input type="number" id="pvClosing" value="3" min="0" max="10" step="0.5">
+              </div>
+              <span class="input-bench">Typical range: 2–5%. Shown as "ballpark" in results.</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-calculate" onclick="pvCalculate()" id="pvAnalyzeBtn">
+          Calculate My Costs
+        </button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: RESULTS -->
+    <div class="results-panel" id="pvResultsPanel">
+
+      <div class="results-placeholder" id="pvPlaceholder">
+        <div class="placeholder-icon" aria-hidden="true">📊</div>
+        <p>Enter your details and click <strong>Calculate My Costs</strong> to see your free estimate.</p>
+        <p class="placeholder-sub">Full recommendation, break-even, and wealth chart available in the paid version.</p>
+      </div>
+
+      <div id="pvResults" style="display:none;">
+
+        <!-- Accessible status -->
+        <div role="status" aria-live="polite" class="sr-only" id="pvStatus">Analysis updated.</div>
+
+        <!-- 3 KPI cards -->
+        <div class="kpi-row">
+          <div class="kpi-card" style="--accent: var(--blue)">
+            <div class="kpi-label">Mortgage Payment
+              <div class="kpi-sublabel">(Principal &amp; Interest only)</div>
+            </div>
+            <div class="kpi-value" id="pvKpiMortgage">—</div>
+          </div>
+          <div class="kpi-card" style="--accent: var(--amber)">
+            <div class="kpi-label">Total Monthly Cost of Owning
+              <div class="kpi-sublabel">(P&amp;I + tax + insurance + maintenance + HOA)</div>
+            </div>
+            <div class="kpi-value" id="pvKpiTotal">—</div>
+          </div>
+          <div class="kpi-card" style="--accent: var(--purple)">
+            <div class="kpi-label">Your Current Rent</div>
+            <div class="kpi-value" id="pvKpiRent">—</div>
+            <div class="kpi-diff" id="pvMonthlyDiff"></div>
+          </div>
+        </div>
+
+        <!-- Cash to close -->
+        <div class="panel pv-cash-panel">
+          <h3 class="panel-title">Total Cash Needed to Close</h3>
+          <table class="breakdown-table">
+            <tbody>
+              <tr><td>Down Payment</td><td class="val" id="pvDP">—</td></tr>
+              <tr>
+                <td>Closing Cost Estimate <span class="ballpark-tag">ballpark</span></td>
+                <td class="val" id="pvClosingAmt">—</td>
+              </tr>
+              <tr class="total-row"><td>Estimated Total</td><td class="val" id="pvCashTotal">—</td></tr>
+            </tbody>
+          </table>
+          <p class="pv-cash-note">Closing cost is a rough estimate (typically 2–5% of purchase price). Your actual closing costs depend on lender fees, title, taxes, and other factors — get a Loan Estimate from your lender for the real number.</p>
+        </div>
+
+        <!-- Monthly cost bar -->
+        <div class="panel comparison-panel">
+          <h3 class="panel-title">Monthly Cost Comparison</h3>
+          <div class="bar-group">
+            <div class="bar-row">
+              <span class="bar-label">Rent</span>
+              <div class="bar-track">
+                <div class="bar-fill rent-bar" id="pvBarRent"></div>
+              </div>
+              <span class="bar-amount" id="pvBarRentAmt"></span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-label">Buy</span>
+              <div class="bar-track">
+                <div class="bar-fill buy-bar" id="pvBarBuy"></div>
+              </div>
+              <span class="bar-amount" id="pvBarBuyAmt"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- What's not included -->
+        <div class="pv-missing-note">
+          <strong>This preview does not include:</strong> a buy-vs-rent recommendation, break-even timeline, 5–10 year wealth comparison, sensitivity analysis, or scenario comparison. Those are part of the full analysis.
+        </div>
+
+      </div><!-- /pvResults -->
+
+    </div><!-- /results-panel -->
+  </div><!-- /main-grid -->
+
+</div><!-- /container -->
+
+<!-- STICKY UPGRADE CARD — revealed after first calculation -->
+<div class="upgrade-sticky" id="upgradeCard" hidden>
+  <div class="upgrade-inner">
+    <div class="upgrade-text">
+      <strong class="upgrade-title">Unlock your full decision plan</strong>
+      <ul class="upgrade-bullets">
+        <li>Recommendation + confidence level (Buy / Rent / House Hack)</li>
+        <li>Break-even month — when buying starts paying off</li>
+        <li>5–10 year wealth chart: Buy vs. Rent &amp; Invest</li>
+        <li>Interest rate &amp; home price sensitivity thresholds</li>
+        <li>Scenario A/B comparison</li>
+      </ul>
+      <button type="button" class="upgrade-what-link" id="upgradeWhatBtn"
+              aria-expanded="false" aria-controls="upgradeDetails"
+              onclick="toggleUpgradeDetails()">What's included? ▾</button>
+      <div id="upgradeDetails" hidden class="upgrade-details">
+        <p>The full paid analysis adds:</p>
+        <ul>
+          <li>Personalized recommendation with confidence rating</li>
+          <li>Exact break-even month on total wealth (not just monthly cost)</li>
+          <li>Interactive year-by-year wealth chart + data table</li>
+          <li>Rate &amp; price sensitivity thresholds</li>
+          <li>DTI affordability check</li>
+          <li>Side-by-side Scenario A vs. B comparison</li>
+          <li>House-hack / multi-family rental income modeling</li>
+          <li>Full methodology panel so you can audit every number</li>
+        </ul>
+      </div>
+    </div>
+    <div class="upgrade-cta-col">
+      <a href="https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00"
+         class="btn btn-primary upgrade-btn">
+        Unlock Full Analysis — $19
+        <span class="upgrade-onetime">(One-time)</span>
+      </a>
+      <p class="upgrade-sub">Instant access &bull; No subscription &bull; No account required</p>
+    </div>
+  </div>
+</div>
+
+<footer class="footer preview-footer">
+  <div class="container">
+    <p>Housing Decision Engine &mdash; For educational purposes. Not financial advice.</p>
+    <p class="footer-contact">Contact: <a href="mailto:homebuyerdecisionengine@gmail.com">homebuyerdecisionengine@gmail.com</a></p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
