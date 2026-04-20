@@ -1131,13 +1131,14 @@ function calculate() {
     rc.classList.remove('access-locked');
   } else {
     rc.classList.add('access-locked');
-    // Make the ::before CTA button clickable — delegated listener on each locked section
+    // Inject a real <a> into each locked section so the CTA is truly clickable
     rc.querySelectorAll('.paid-only').forEach(el => {
-      if (!el.dataset.stripeListenerAttached) {
-        el.dataset.stripeListenerAttached = 'true';
-        el.addEventListener('click', () => {
-          window.location.href = 'https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00';
-        });
+      if (!el.querySelector('.paid-unlock-cta')) {
+        const a = document.createElement('a');
+        a.href = 'https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00';
+        a.className = 'paid-unlock-cta';
+        a.textContent = '🔒 Unlock the full analysis — $19';
+        el.appendChild(a);
       }
     });
   }

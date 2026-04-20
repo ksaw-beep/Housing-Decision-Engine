@@ -1855,18 +1855,11 @@ a:focus-visible,
   border-radius: var(--radius, 12px);
   z-index: 5;
 }
-/* Unlock CTA overlay on top of the blur — pinned near the top of each locked
-   section so the CTA lands in a consistent visual position regardless of how
-   tall the underlying paid content is. */
-.results-content.access-locked .paid-only::before {
-  content: '🔒 Unlock the full analysis — $19';
+/* Unlock CTA — real <a> injected by JS, positioned above the blur overlay */
+.paid-unlock-cta {
   position: absolute;
   top: 60px;
   left: 50%;
-  right: auto;    /* override .decision-plan::before { right: 0 } so width shrinks to content */
-  bottom: auto;   /* same — defensive reset in case a panel variant sets bottom */
-  width: auto;
-  height: auto;
   transform: translateX(-50%);
   z-index: 10;
   background: var(--gold, #8b1c2e);
@@ -1879,6 +1872,8 @@ a:focus-visible,
   box-shadow: 0 6px 20px rgba(139,28,46,0.35);
   cursor: pointer;
   letter-spacing: 0.01em;
+  text-decoration: none;
+  display: inline-block;
 }
 /* For short panels, don't push the CTA below the content — cap at panel height minus padding */
 .results-content.access-locked .paid-only {
