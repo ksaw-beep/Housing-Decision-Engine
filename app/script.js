@@ -189,6 +189,19 @@ function updatePMIHint() {
   }
   const pmi = calcMonthlyPMI(price, dpPct, profile);
   benchEl.textContent = `Est. PMI: ${fmt(pmi)}/mo`;
+  // Credit score rate advisory
+  const rateNoteEl = $('creditRateNote');
+  if (rateNoteEl) {
+    if (profile === 'below660') {
+      rateNoteEl.textContent = '⚠ Credit below 660 may increase your interest rate by 0.5–1.5% above advertised rates. Consider using a higher rate in your analysis.';
+      rateNoteEl.style.display = '';
+    } else if (profile === '660-699') {
+      rateNoteEl.textContent = 'Credit in 660–699 range may increase your rate by ~0.25–0.75%. Consider adjusting your interest rate input slightly upward.';
+      rateNoteEl.style.display = '';
+    } else {
+      rateNoteEl.style.display = 'none';
+    }
+  }
   if (document.body.classList.contains('basic-mode') && dpPct < 20 && loanType === 'Conventional') {
     const noteEl = document.getElementById('loanTypeNote');
     if (noteEl) noteEl.style.display = '';
@@ -218,6 +231,12 @@ function updateLoanTypeHint() {
   const bench = $('loanTypeBench');
   if (!bench || !$('loanType')) return;
   const t = $('loanType').value;
+  const dpPct2 = num('downPaymentPct');
+  if (dpPct2 >= 20) {
+    if (bench) bench.textContent = 'With 20%+ down, no mortgage insurance is required. Conventional loans are typically the best choice at this down payment level.';
+    updatePMIHint();
+    return;
+  }
   if (t === 'FHA') {
     bench.textContent = 'FHA mortgage insurance (MIP) works differently from conventional PMI — it often lasts 11 years or the life of the loan depending on your original down payment. For down payments below 10%, MIP lasts the full loan term.';
   } else {
@@ -1691,6 +1710,7 @@ function validateInputs() {
   if (box) {
     if (errs.length) {
       box.style.display = '';
+      box.className = 'form-errors';
       box.innerHTML = '<strong>Please fix the following before analyzing:</strong><ul>' +
         errs.map(e => `<li>${e}</li>`).join('') + '</ul>';
       // Focus first bad input for accessibility
@@ -1700,6 +1720,19 @@ function validateInputs() {
       box.innerHTML = '';
     }
   }
+
+  // Advisory warning for negative appreciation (non-blocking)
+  const appEl2 = $('homeAppreciation');
+  if (appEl2) {
+    const appV2 = parseFloat(appEl2.value);
+    const warnBox = $('formErrors');
+    if (!isNaN(appV2) && appV2 < 0 && warnBox && errs.length === 0) {
+      warnBox.style.display = '';
+      warnBox.innerHTML = `<strong>⚠ Note:</strong> You've entered negative appreciation (${appV2}%). This means the home loses value over time — a valid scenario, but double-check your input.`;
+      warnBox.className = 'form-errors form-warn';
+    }
+  }
+
   return errs.length === 0;
 }
 
@@ -2047,17 +2080,24 @@ function updateScenarioUI() {
   statusA.textContent = scenarioA ? (activeSlot === 'A' ? '● Active' : '✓ Saved') : '';
   statusB.textContent = scenarioB ? (activeSlot === 'B' ? '● Active' : '✓ Saved') : '';
   // Button labels reflect intent (save / update / switch).
+  const labelA = ($('scenNameA') && $('scenNameA').value.trim()) || 'Scenario A';
+  const labelB = ($('scenNameB') && $('scenNameB').value.trim()) || 'Scenario B';
   btnA.firstChild.nodeValue = !scenarioA
-    ? 'Save as Scenario A '
-    : (activeSlot === 'A' ? 'Update Scenario A ' : 'Switch to Scenario A ');
+    ? `Save as ${labelA} `
+    : (activeSlot === 'A' ? `Update ${labelA} ` : `Switch to ${labelA} `);
   btnB.firstChild.nodeValue = !scenarioB
-    ? 'Save as Scenario B '
-    : (activeSlot === 'B' ? 'Update Scenario B ' : 'Switch to Scenario B ');
+    ? `Save as ${labelB} `
+    : (activeSlot === 'B' ? `Update ${labelB} ` : `Switch to ${labelB} `);
   // Active highlight
   btnA.classList.toggle('btn-scenario-active', activeSlot === 'A');
   btnB.classList.toggle('btn-scenario-active', activeSlot === 'B');
   // Scenario B button stays hidden until A is saved.
   btnB.style.display = scenarioA ? '' : 'none';
+  // Show/hide name inputs
+  const nameA = $('scenNameA');
+  const nameB = $('scenNameB');
+  if (nameA) nameA.style.display = scenarioA ? '' : 'none';
+  if (nameB) nameB.style.display = (scenarioA && scenarioB) ? '' : 'none';
   if (scenarioA && scenarioB) {
     panel.style.display = '';
     renderComparison();
@@ -2067,6 +2107,13 @@ function updateScenarioUI() {
 }
 
 function renderComparison() {
+  // Update column headers with custom names
+  const thA = document.querySelector('#comparePanel thead th:nth-child(2)');
+  const thB = document.querySelector('#comparePanel thead th:nth-child(3)');
+  const nameA = ($('scenNameA') && $('scenNameA').value.trim()) || 'Scenario A';
+  const nameB = ($('scenNameB') && $('scenNameB').value.trim()) || 'Scenario B';
+  if (thA) thA.textContent = nameA;
+  if (thB) thB.textContent = nameB;
   const rows = [
     { label: 'Monthly Cost (Buy)', get: r => fmt(r.totalOwnership) },
     { label: 'Net Monthly vs Rent', get: r => fmtSigned(r.monthlyDiff) + '/mo' },
@@ -2196,6 +2243,21 @@ $('propertyState').addEventListener('change', onStateChange);
 // Borrower Profile dropdown — refresh the PMI helper line live.
 $('creditProfile').addEventListener('change', updatePMIHint);
 if ($('loanType')) $('loanType').addEventListener('change', updateLoanTypeHint);
+if ($('downPaymentPct')) $('downPaymentPct').addEventListener('input', updateLoanTypeHint);
+
+// Interest rate slider ↔ number input sync (NTH 6)
+const rateInput = $('interestRate');
+const rateSlider = $('interestRateSlider');
+if (rateInput && rateSlider) {
+  rateInput.addEventListener('input', () => {
+    const v = parseFloat(rateInput.value);
+    if (!isNaN(v) && v >= 2 && v <= 12) rateSlider.value = v;
+  });
+  rateSlider.addEventListener('input', () => {
+    rateInput.value = parseFloat(rateSlider.value).toFixed(3).replace(/\.?0+$/, '');
+    updateHints();
+  });
+}
 
 // ---------- INIT ----------
 populateStateDropdown();

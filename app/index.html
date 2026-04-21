@@ -81,6 +81,7 @@
             <div class="input-wrap percent">
               <input type="number" id="interestRate" value="6.75" min="0" max="15" step="0.125">
             </div>
+            <input type="range" id="interestRateSlider" min="2" max="12" step="0.125" value="6.75" class="rate-slider" aria-label="Interest rate slider">
           </div>
         </div>
         <div class="input-group">
@@ -142,6 +143,7 @@
           </div>
           <span class="input-bench" id="pmiBench">Est. PMI: —</span>
           <span class="input-bench loan-type-note" id="loanTypeNote" style="display:none;">⚠ With less than 20% down, you may benefit from an FHA loan. Switch to <strong>Advanced</strong> mode to compare loan types.</span>
+          <span class="input-bench credit-rate-note" id="creditRateNote" style="display:none;"></span>
           <span class="input-bench">Used to estimate PMI for planning purposes — not a lender quote.</span>
         </div>
         <div class="input-group advanced-only">
@@ -314,8 +316,14 @@
       <button class="btn-calculate" onclick="calculate()">Analyze My Options</button>
 
       <div class="scenario-controls">
-        <button class="btn-scenario" id="btnSaveA" onclick="saveScenario('A')">Save as Scenario A <span class="scen-status" id="scenAStatus"></span></button>
-        <button class="btn-scenario" id="btnSaveB" onclick="saveScenario('B')" style="display:none;">Save as Scenario B <span class="scen-status" id="scenBStatus"></span></button>
+        <div class="scen-slot">
+          <button class="btn-scenario" id="btnSaveA" onclick="saveScenario('A')">Save as Scenario A <span class="scen-status" id="scenAStatus"></span></button>
+          <input type="text" class="scen-name-input" id="scenNameA" placeholder="Label (e.g. Buy now)" maxlength="30" aria-label="Scenario A label" style="display:none;">
+        </div>
+        <div class="scen-slot">
+          <button class="btn-scenario" id="btnSaveB" onclick="saveScenario('B')" style="display:none;">Save as Scenario B <span class="scen-status" id="scenBStatus"></span></button>
+          <input type="text" class="scen-name-input" id="scenNameB" placeholder="Label (e.g. Buy in 3 yrs)" maxlength="30" aria-label="Scenario B label" style="display:none;">
+        </div>
         <button class="btn-scenario btn-scenario-clear" onclick="clearScenarios()">Clear</button>
       </div>
       <p class="scenario-help">Save two scenarios to compare them side by side.</p>
@@ -396,7 +404,7 @@
         <!-- ========== SCENARIO COMPARISON ========== -->
         <div class="panel compare-panel paid-only" id="comparePanel" style="display:none;">
           <h3 class="panel-title">Scenario Comparison</h3>
-          <p class="panel-subtitle">Side-by-side comparison of the two scenarios you saved.</p>
+          <p class="panel-subtitle">Side-by-side comparison of your saved scenarios. Column headers show your custom labels (or "Scenario A/B" by default). Each row shows how the key metrics differ between the two.</p>
           <table class="compare-table">
             <thead>
               <tr><th scope="col">Metric</th><th scope="col">Scenario A</th><th scope="col">Scenario B</th></tr>
@@ -407,6 +415,7 @@
         </div>
 
         <!-- ========== KPI CARDS ========== -->
+        <p class="section-intro">Your estimated monthly costs at a glance — mortgage payment is principal &amp; interest only. Total monthly cost includes all ownership expenses.</p>
         <div class="kpi-row">
           <div class="kpi-card" style="--accent: var(--blue)">
             <div class="kpi-label">Mortgage Payment (Principal &amp; Interest)
@@ -678,6 +687,7 @@
         <!-- ========== HORIZON OUTLOOK (dynamic) ========== -->
         <div class="panel">
           <h3 class="panel-title" id="outlookPanelTitle">5-Year Outlook</h3>
+          <p class="panel-subtitle">A longer horizon means more rent paid — but also more equity built and more time for investments to compound.</p>
           <div class="outlook-grid">
             <div class="outlook-item">
               <div class="outlook-label" id="olRentLabel">Total Rent Paid (5yr)</div>

@@ -599,6 +599,14 @@ body {
   border-left: 3px solid var(--gold);
 }
 
+.section-intro {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
 /* ===== KPI ROW ===== */
 .kpi-row {
   display: grid;
@@ -1665,6 +1673,27 @@ body.basic-mode .advanced-only { display: none !important; }
   margin: 6px 0 0 0;
   font-style: italic;
 }
+.scen-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.scen-name-input {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  width: 150px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.scen-name-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(139,28,46,0.1);
+}
 .compare-panel { border-left: 4px solid #3b82f6; }
 .compare-table {
   width: 100%;
@@ -1812,6 +1841,11 @@ body.basic-mode .advanced-only { display: none !important; }
 }
 .form-errors ul { margin: 6px 0 0 18px; }
 .form-errors li { margin-bottom: 3px; }
+.form-errors.form-warn {
+  background: #fffbeb;
+  border-color: #b45309;
+  color: #92400e;
+}
 
 /* Inline field error text */
 .field-error-msg {
@@ -1928,10 +1962,38 @@ a:focus-visible,
 }
 .next-step-link:hover { opacity: 0.8; }
 
+.rate-slider {
+  width: 100%;
+  margin-top: 6px;
+  accent-color: var(--gold);
+  cursor: pointer;
+  height: 4px;
+}
+
 /* DTI caution badge colour */
 .dti-badge.dti-caution {
   background: #fef3c7;
   color: #92400e;
   border-color: #fcd34d;
+}
+
+@media (max-width: 768px) {
+  .breakdown-table td,
+  .compare-table td,
+  .be-snapshot td,
+  .chart-data-table td {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+  .kpi-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .wealth-grid {
+    grid-template-columns: 1fr;
+  }
+  .compare-table th,
+  .compare-table td {
+    min-width: 80px;
+  }
 }
 
