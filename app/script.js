@@ -2096,8 +2096,8 @@ function updateScenarioUI() {
   // Show/hide name inputs
   const nameA = $('scenNameA');
   const nameB = $('scenNameB');
-  if (nameA) nameA.style.display = scenarioA ? '' : 'none';
-  if (nameB) nameB.style.display = (scenarioA && scenarioB) ? '' : 'none';
+  if (nameA) nameA.style.display = '';
+  if (nameB) nameB.style.display = scenarioA ? '' : 'none';
   if (scenarioA && scenarioB) {
     panel.style.display = '';
     renderComparison();
@@ -2245,6 +2245,10 @@ $('creditProfile').addEventListener('change', updatePMIHint);
 if ($('loanType')) $('loanType').addEventListener('change', updateLoanTypeHint);
 if ($('downPaymentPct')) $('downPaymentPct').addEventListener('input', updateLoanTypeHint);
 
+// Scenario name inputs — update button labels live as user types
+if ($('scenNameA')) $('scenNameA').addEventListener('input', updateScenarioUI);
+if ($('scenNameB')) $('scenNameB').addEventListener('input', updateScenarioUI);
+
 // Interest rate slider ↔ number input sync (NTH 6)
 const rateInput = $('interestRate');
 const rateSlider = $('interestRateSlider');
@@ -2255,7 +2259,7 @@ if (rateInput && rateSlider) {
   });
   rateSlider.addEventListener('input', () => {
     rateInput.value = parseFloat(rateSlider.value).toFixed(3).replace(/\.?0+$/, '');
-    updateHints();
+    calculate();
   });
 }
 

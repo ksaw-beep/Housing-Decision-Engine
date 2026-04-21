@@ -75,6 +75,7 @@
               <input type="number" id="downPaymentPct" value="10" min="0" max="100" step="0.5">
             </div>
             <span class="input-hint" id="downPaymentAmt">$35,000</span>
+            <span class="input-bench loan-type-note" id="loanTypeNote" style="display:none;">⚠ With less than 20% down, you may benefit from an FHA loan. Switch to <strong>Advanced</strong> mode to compare loan types.</span>
           </div>
           <div class="input-group">
             <label for="interestRate">Interest Rate</label>
@@ -82,6 +83,7 @@
               <input type="number" id="interestRate" value="6.75" min="0" max="15" step="0.125">
             </div>
             <input type="range" id="interestRateSlider" min="2" max="12" step="0.125" value="6.75" class="rate-slider" aria-label="Interest rate slider">
+            <span class="input-bench credit-rate-note" id="creditRateNote" style="display:none;"></span>
           </div>
         </div>
         <div class="input-group">
@@ -142,8 +144,6 @@
             </select>
           </div>
           <span class="input-bench" id="pmiBench">Est. PMI: —</span>
-          <span class="input-bench loan-type-note" id="loanTypeNote" style="display:none;">⚠ With less than 20% down, you may benefit from an FHA loan. Switch to <strong>Advanced</strong> mode to compare loan types.</span>
-          <span class="input-bench credit-rate-note" id="creditRateNote" style="display:none;"></span>
           <span class="input-bench">Used to estimate PMI for planning purposes — not a lender quote.</span>
         </div>
         <div class="input-group advanced-only">
@@ -816,7 +816,7 @@
 
 </div>
 
-<script src="script.js?v=3"></script>
+<script src="script.js?v=4"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)
