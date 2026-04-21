@@ -23,6 +23,20 @@ function unlockPaidAccess() {
   }
 }
 
+function injectUnlockButtons() {
+  const rc = document.getElementById('resultsContent');
+  if (!rc) return;
+  rc.querySelectorAll('.paid-only').forEach(el => {
+    if (!el.querySelector('.paid-unlock-cta')) {
+      const a = document.createElement('a');
+      a.href = 'https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00';
+      a.className = 'paid-unlock-cta';
+      a.textContent = '\uD83D\uDD12 Unlock the full analysis \u2014 $19';
+      el.appendChild(a);
+    }
+  });
+}
+
 // ---------- CHART STATE (shared between render and tooltip) ----------
 let chartState = null;
 
@@ -175,6 +189,13 @@ function updatePMIHint() {
   }
   const pmi = calcMonthlyPMI(price, dpPct, profile);
   benchEl.textContent = `Est. PMI: ${fmt(pmi)}/mo`;
+  if (document.body.classList.contains('basic-mode') && dpPct < 20 && loanType === 'Conventional') {
+    const noteEl = document.getElementById('loanTypeNote');
+    if (noteEl) noteEl.style.display = '';
+  } else {
+    const noteEl = document.getElementById('loanTypeNote');
+    if (noteEl) noteEl.style.display = 'none';
+  }
 }
 
 // Show/hide rental income helper text and move-out dropdown
@@ -187,6 +208,8 @@ function updateRentalIncomeHelper() {
   if (moveOutGroup) moveOutGroup.style.display = rental > 0 ? '' : 'none';
   if (hackRealism) hackRealism.style.display = rental > 0 ? '' : 'none';
   if (rental <= 0 && $('moveOutWarn')) $('moveOutWarn').style.display = 'none';
+  const hackSub = $('hackSubtitle');
+  if (hackSub) hackSub.style.display = rental > 0 ? 'none' : '';
   validateMoveOut();
 }
 
@@ -1081,7 +1104,7 @@ function calculate() {
     closingCostsPct: num('closingCostsPct'),
     sellingCostsPct: num('sellingCostsPct'),
     investReturn: num('investReturn') || DEFAULT_INVEST_RETURN,
-    timeHorizon: num('timeHorizon') || 5,
+    timeHorizon: Math.max(num('timeHorizon') >= 0 ? num('timeHorizon') : 5, 1/12),
     moveOutYear: Math.min(parseInt($('moveOutYear').value) || 0, num('timeHorizon') || 5),
     annualIncome: num('annualIncome'),
     monthlyDebt: num('monthlyDebt'),
@@ -1131,16 +1154,6 @@ function calculate() {
     rc.classList.remove('access-locked');
   } else {
     rc.classList.add('access-locked');
-    // Inject a real <a> into each locked section so the CTA is truly clickable
-    rc.querySelectorAll('.paid-only').forEach(el => {
-      if (!el.querySelector('.paid-unlock-cta')) {
-        const a = document.createElement('a');
-        a.href = 'https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00';
-        a.className = 'paid-unlock-cta';
-        a.textContent = '🔒 Unlock the full analysis — $19';
-        el.appendChild(a);
-      }
-    });
   }
 
   // === ANALYSIS STATUS BANNER (Phase 2) ===
@@ -1550,6 +1563,8 @@ function calculate() {
     const resultsPanel = $('resultsPanel') || $('resultsContent');
     if (resultsPanel) resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  if (!window.paidAccessVerified) injectUnlockButtons();
 }
 
 // ---------- RESET ----------
@@ -1592,18 +1607,16 @@ function validateInputs() {
     if (span) span.textContent = '';
   }
 
-  // Required positive value fields
-  const requiredPos = [
-    ['homePrice', 'Home Price', 'Home Price must be greater than 0.'],
-    ['currentRent', 'Current Rent', 'Current Rent must be 0 or greater.'],
-  ];
-  requiredPos.forEach(([id, , msg]) => {
-    const el = $(id);
-    if (!el) return;
-    const v = parseFloat(el.value);
-    if (isNaN(v) || v <= 0) markInvalid(el, msg);
-    else clearInvalid(el);
-  });
+  // Home Price must be > 0
+  const hp = $('homePrice');
+  const hpV = parseFloat(hp ? hp.value : '');
+  if (!hp || isNaN(hpV) || hpV <= 0) markInvalid(hp, 'Home Price must be greater than 0.');
+  else clearInvalid(hp);
+  // Current Rent: 0 is valid, only NaN or negative is invalid
+  const cr = $('currentRent');
+  const crV = parseFloat(cr ? cr.value : '');
+  if (!cr || isNaN(crV) || crV < 0) markInvalid(cr, 'Current Rent cannot be negative.');
+  else clearInvalid(cr);
 
   // Must be >= 0 fields
   const nonNegFields = [
@@ -1637,11 +1650,11 @@ function validateInputs() {
     else clearInvalid(termEl);
   }
 
-  // Time horizon must be positive
+  // Time horizon must be non-negative
   const thEl = $('timeHorizon');
   const th = thEl ? (parseFloat(thEl.value) || 0) : 0;
-  if (th <= 0) {
-    markInvalid(thEl, 'Time horizon must be at least 1 year.');
+  if (th < 0) {
+    markInvalid(thEl, 'Time horizon cannot be negative.');
   } else {
     clearInvalid(thEl);
   }
@@ -1657,7 +1670,8 @@ function validateInputs() {
   const dpEl = $('downPaymentPct');
   if (dpEl) {
     const dpV = parseFloat(dpEl.value);
-    if (!isNaN(dpV) && dpV > 100) markInvalid(dpEl, 'Down Payment cannot exceed 100%.');
+    if (!isNaN(dpV) && dpV < 0) markInvalid(dpEl, 'Down Payment cannot be negative.');
+    else if (!isNaN(dpV) && dpV > 100) markInvalid(dpEl, 'Down Payment cannot exceed 100%.');
   }
 
   // Vacancy + expense ratio range
@@ -1700,7 +1714,7 @@ function renderAffordability(params, totalOwnership) {
     panel.style.display = '';
     if ($('dtiValue')) $('dtiValue').textContent = '—';
     if ($('dtiBadge')) { $('dtiBadge').textContent = 'N/A'; $('dtiBadge').className = 'dti-badge'; }
-    if ($('dtiBreakdown')) $('dtiBreakdown').textContent = 'Add your annual household income above to estimate your DTI ratio.';
+    if ($('dtiBreakdown')) $('dtiBreakdown').textContent = 'Enter your Annual Household Income and Monthly Debt above to see your estimated debt-to-income (DTI) ratio. Missing income data prevents affordability analysis.';
     if ($('dtiWarn')) $('dtiWarn').style.display = 'none';
     return;
   }
@@ -2063,7 +2077,7 @@ function renderComparison() {
   ];
   const tbody = $('compareBody');
   tbody.innerHTML = rows.map(r =>
-    `<tr><td class="cmp-label">${r.label}</td><td>${r.get(scenarioA)}</td><td>${r.get(scenarioB)}</td></tr>`
+    `<tr><td class="cmp-label" scope="row">${r.label}</td><td>${r.get(scenarioA)}</td><td>${r.get(scenarioB)}</td></tr>`
   ).join('');
   // Summary line
   const wiA = scenarioA.wealth5.wealthImpact;

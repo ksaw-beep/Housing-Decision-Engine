@@ -12,7 +12,7 @@
 
   <!-- PAID UNLOCK BANNER (shown after verified Stripe session) -->
   <div class="paid-banner" id="paidBanner" hidden role="status" aria-live="polite">
-    <div class="paid-banner-icon" aria-hidden="true">✅</div>
+    <span class="paid-banner-icon" aria-hidden="true">✅</span>
     <div class="paid-banner-text">
       <div class="paid-banner-title">Your full decision plan is unlocked</div>
       <div class="paid-banner-sub">You're now viewing the complete analysis including your personalized recommendation, break-even timing, and long-term wealth comparison.</div>
@@ -59,7 +59,7 @@
 
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-icon">🏠</span>
+          <span class="panel-icon" aria-hidden="true">🏠</span>
           <h2 class="panel-title">Property Details</h2>
         </div>
         <div class="input-group">
@@ -86,9 +86,9 @@
         <div class="input-group">
           <label for="timeHorizon">How long do you plan to own?</label>
           <div class="input-wrap years">
-            <input type="number" id="timeHorizon" value="5" min="1" max="30" step="1">
+            <input type="number" id="timeHorizon" value="5" min="0" max="30" step="1">
           </div>
-          <span class="input-bench">Used for break-even, wealth comparison, and outlook.</span>
+          <span class="input-bench">Enter 0 to analyze an immediate purchase. Used for break-even, wealth comparison, and outlook.</span>
         </div>
         <div class="input-group advanced-only">
           <label for="propertyState">Property State</label>
@@ -141,6 +141,7 @@
             </select>
           </div>
           <span class="input-bench" id="pmiBench">Est. PMI: —</span>
+          <span class="input-bench loan-type-note" id="loanTypeNote" style="display:none;">⚠ With less than 20% down, you may benefit from an FHA loan. Switch to <strong>Advanced</strong> mode to compare loan types.</span>
           <span class="input-bench">Used to estimate PMI for planning purposes — not a lender quote.</span>
         </div>
         <div class="input-group advanced-only">
@@ -157,14 +158,14 @@
 
       <div class="panel advanced-only">
         <div class="panel-header">
-          <span class="panel-icon">💰</span>
+          <span class="panel-icon" aria-hidden="true">💰</span>
           <h2 class="panel-title">Ownership Costs</h2>
         </div>
         <div class="input-row-2">
           <div class="input-group">
             <label for="propertyTax">Property Tax Rate (annual % of home value)
               <span class="tip-wrap">
-                <button type="button" class="tip-btn" aria-describedby="tip-propertytax" onclick="tipToggle(this)">?</button>
+                <button type="button" class="tip-btn" aria-describedby="tip-propertytax" title="Property Tax Rate" onclick="tipToggle(this)">?</button>
                 <span class="tip-content" role="tooltip" id="tip-propertytax">Enter your best estimate. Property taxes vary significantly by location. Use the state dropdown above as a starting point.</span>
               </span>
             </label>
@@ -175,7 +176,7 @@
             <span class="input-bench" id="propertyTaxBench">State average: —</span>
           </div>
           <div class="input-group">
-            <label for="insurance">Insurance (Annual)</label>
+            <label for="insurance">Insurance (Annual $)</label>
             <div class="input-wrap dollar">
               <input type="number" id="insurance" value="1800" min="0" step="100">
             </div>
@@ -184,7 +185,7 @@
         </div>
         <div class="input-row-2">
           <div class="input-group">
-            <label for="maintenance">Maintenance</label>
+            <label for="maintenance">Maintenance (% of home value, annual)</label>
             <div class="input-wrap percent">
               <input type="number" id="maintenance" value="1" min="0" max="5" step="0.25">
             </div>
@@ -202,7 +203,7 @@
 
       <div class="panel">
         <div class="panel-header">
-          <span class="panel-icon">🔑</span>
+          <span class="panel-icon" aria-hidden="true">🔑</span>
           <h2 class="panel-title">Renting Scenario</h2>
         </div>
         <div class="input-group">
@@ -231,9 +232,10 @@
 
       <div class="panel advanced-only">
         <div class="panel-header">
-          <span class="panel-icon">🏘️</span>
+          <span class="panel-icon" aria-hidden="true">🏘️</span>
           <h2 class="panel-title">House Hack (Multi-Family)</h2>
         </div>
+        <p class="panel-subtitle" id="hackSubtitle">Enter a rental income amount to activate house hack analysis.</p>
         <div class="input-group">
           <label for="rentalIncome">Gross Monthly Rental Income (Other Units)</label>
           <div class="input-wrap dollar">
@@ -286,7 +288,7 @@
 
       <div class="panel advanced-only">
         <div class="panel-header">
-          <span class="panel-icon">📋</span>
+          <span class="panel-icon" aria-hidden="true">📋</span>
           <h2 class="panel-title">Affordability Check (Optional)</h2>
         </div>
         <div class="input-row-2">
@@ -342,6 +344,7 @@
             <div class="dp-icon" id="dpIcon">🏠</div>
             <div>
               <div class="dp-label">Your Decision Plan</div>
+              <div class="dp-recommendation-label">Recommendation</div>
               <div class="dp-verdict" id="dpVerdict"></div>
             </div>
             <div class="dp-confidence" id="dpConfidence">
@@ -396,7 +399,7 @@
           <p class="panel-subtitle">Side-by-side comparison of the two scenarios you saved.</p>
           <table class="compare-table">
             <thead>
-              <tr><th></th><th>Scenario A</th><th>Scenario B</th></tr>
+              <tr><th scope="col">Metric</th><th scope="col">Scenario A</th><th scope="col">Scenario B</th></tr>
             </thead>
             <tbody id="compareBody"></tbody>
           </table>
@@ -430,7 +433,7 @@
         </div>
 
         <!-- ========== AFFORDABILITY / DTI ========== -->
-        <div class="panel affordability-panel" id="affordabilityPanel" style="display:none;">
+        <div class="panel affordability-panel paid-only" id="affordabilityPanel" style="display:none;">
           <h3 class="panel-title">Affordability Check <span class="panel-title-sub">(Informational Only)</span></h3>
           <p class="panel-subtitle">Your estimated debt-to-income (DTI) ratio is shown below for reference. <strong>This does not determine mortgage approval.</strong> Lenders weigh many factors — income, credit, assets, and loan type — beyond DTI. General guidelines: <strong>≤ 36%</strong> generally stronger; <strong>36–45%</strong> may still qualify depending on credit, reserves, and program; <strong>&gt; 45%</strong> stretch territory — harder to qualify under most conventional programs.</p>
           <div class="dti-row">
@@ -451,9 +454,9 @@
           <h3 class="panel-title">Total Cash to Close</h3>
           <table class="breakdown-table">
             <tbody>
-              <tr><td>Down Payment</td><td class="val" id="ctcDP"></td></tr>
-              <tr><td>Closing Costs</td><td class="val" id="ctcClosing"></td></tr>
-              <tr class="total-row"><td>Total Cash Needed</td><td class="val" id="ctcTotal"></td></tr>
+              <tr><td scope="row">Down Payment</td><td class="val" id="ctcDP"></td></tr>
+              <tr><td scope="row">Closing Costs</td><td class="val" id="ctcClosing"></td></tr>
+              <tr class="total-row"><td scope="row">Total Cash Needed</td><td class="val" id="ctcTotal"></td></tr>
             </tbody>
           </table>
         </div>
@@ -555,7 +558,7 @@
           <h3 class="panel-title">Wealth Over Time</h3>
           <p class="panel-subtitle">How does your net financial position evolve year by year?</p>
           <div class="chart-container" id="chartContainer">
-            <canvas id="wealthChart"></canvas>
+            <canvas id="wealthChart" role="img" aria-label="Wealth over time chart comparing buying vs renting net financial position, year by year"></canvas>
             <div class="chart-tooltip" id="chartTooltip"></div>
             <div class="chart-crosshair" id="chartCrosshair"></div>
           </div>
@@ -603,27 +606,27 @@
             <table class="be-snapshot">
               <thead>
                 <tr>
-                  <th></th>
-                  <th>Year 0</th>
-                  <th>Year 1</th>
-                  <th id="beSnapHdrHorizon">Year 5</th>
+                  <th scope="col"></th>
+                  <th scope="col">Year 0</th>
+                  <th scope="col">Year 1</th>
+                  <th scope="col" id="beSnapHdrHorizon">Year 5</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td class="be-snap-label">Buy net</td>
+                  <td class="be-snap-label" scope="row">Buy net</td>
                   <td class="be-snap-val" id="beSnapBuy0"></td>
                   <td class="be-snap-val" id="beSnapBuy1"></td>
                   <td class="be-snap-val" id="beSnapBuy5"></td>
                 </tr>
                 <tr>
-                  <td class="be-snap-label">Rent net</td>
+                  <td class="be-snap-label" scope="row">Rent net</td>
                   <td class="be-snap-val" id="beSnapRent0"></td>
                   <td class="be-snap-val" id="beSnapRent1"></td>
                   <td class="be-snap-val" id="beSnapRent5"></td>
                 </tr>
                 <tr class="be-snap-diff-row">
-                  <td class="be-snap-label">Difference</td>
+                  <td class="be-snap-label" scope="row">Difference</td>
                   <td class="be-snap-val" id="beSnapDiff0"></td>
                   <td class="be-snap-val" id="beSnapDiff1"></td>
                   <td class="be-snap-val" id="beSnapDiff5"></td>
@@ -659,15 +662,15 @@
           <h3 class="panel-title">Ownership Cost Breakdown</h3>
           <table class="breakdown-table">
             <tbody>
-              <tr><td>Mortgage (P&I)</td><td class="val" id="bdMortgage"></td></tr>
-              <tr><td>Property Tax</td><td class="val" id="bdTax"></td></tr>
-              <tr><td>Insurance</td><td class="val" id="bdInsurance"></td></tr>
-              <tr><td>Maintenance</td><td class="val" id="bdMaintenance"></td></tr>
-              <tr><td>HOA</td><td class="val" id="bdHOA"></td></tr>
-              <tr id="bdPMIRow"><td id="bdPMILabel">PMI</td><td class="val" id="bdPMI"></td></tr>
-              <tr class="total-row"><td>Total Ownership</td><td class="val" id="bdTotal"></td></tr>
-              <tr id="bdRentalRow" style="display:none;"><td>Rental Income</td><td class="val green" id="bdRental"></td></tr>
-              <tr id="bdNetRow" style="display:none;" class="total-row"><td>Net Monthly Cost</td><td class="val" id="bdNet"></td></tr>
+              <tr><td scope="row">Mortgage (P&I)</td><td class="val" id="bdMortgage"></td></tr>
+              <tr><td scope="row">Property Tax</td><td class="val" id="bdTax"></td></tr>
+              <tr><td scope="row">Insurance</td><td class="val" id="bdInsurance"></td></tr>
+              <tr><td scope="row">Maintenance</td><td class="val" id="bdMaintenance"></td></tr>
+              <tr><td scope="row">HOA</td><td class="val" id="bdHOA"></td></tr>
+              <tr id="bdPMIRow"><td id="bdPMILabel" scope="row">PMI</td><td class="val" id="bdPMI"></td></tr>
+              <tr class="total-row"><td scope="row">Total Ownership</td><td class="val" id="bdTotal"></td></tr>
+              <tr id="bdRentalRow" style="display:none;"><td scope="row">Rental Income</td><td class="val green" id="bdRental"></td></tr>
+              <tr id="bdNetRow" style="display:none;" class="total-row"><td scope="row">Net Monthly Cost</td><td class="val" id="bdNet"></td></tr>
             </tbody>
           </table>
         </div>
