@@ -1985,6 +1985,8 @@ function buildNarrative(decision, params, breakEven, wealth5, confidence) {
 let scenarioA = null;
 let scenarioB = null;
 let activeSlot = null; // 'A' | 'B' | null — which slot the current inputs correspond to
+let scenLabelA = 'Scenario A';
+let scenLabelB = 'Scenario B';
 
 function snapshotScenario() {
   // Must be called after calculate() has produced a fresh result
@@ -2080,24 +2082,17 @@ function updateScenarioUI() {
   statusA.textContent = scenarioA ? (activeSlot === 'A' ? '● Active' : '✓ Saved') : '';
   statusB.textContent = scenarioB ? (activeSlot === 'B' ? '● Active' : '✓ Saved') : '';
   // Button labels reflect intent (save / update / switch).
-  const labelA = ($('scenNameA') && $('scenNameA').value.trim()) || 'Scenario A';
-  const labelB = ($('scenNameB') && $('scenNameB').value.trim()) || 'Scenario B';
   btnA.firstChild.nodeValue = !scenarioA
-    ? `Save as ${labelA} `
-    : (activeSlot === 'A' ? `Update ${labelA} ` : `Switch to ${labelA} `);
+    ? `Save as ${scenLabelA} `
+    : (activeSlot === 'A' ? `Update ${scenLabelA} ` : `Switch to ${scenLabelA} `);
   btnB.firstChild.nodeValue = !scenarioB
-    ? `Save as ${labelB} `
-    : (activeSlot === 'B' ? `Update ${labelB} ` : `Switch to ${labelB} `);
+    ? `Save as ${scenLabelB} `
+    : (activeSlot === 'B' ? `Update ${scenLabelB} ` : `Switch to ${scenLabelB} `);
   // Active highlight
   btnA.classList.toggle('btn-scenario-active', activeSlot === 'A');
   btnB.classList.toggle('btn-scenario-active', activeSlot === 'B');
   // Scenario B button stays hidden until A is saved.
   btnB.style.display = scenarioA ? '' : 'none';
-  // Show/hide name inputs
-  const nameA = $('scenNameA');
-  const nameB = $('scenNameB');
-  if (nameA) nameA.style.display = '';
-  if (nameB) nameB.style.display = scenarioA ? '' : 'none';
   if (scenarioA && scenarioB) {
     panel.style.display = '';
     renderComparison();
@@ -2110,10 +2105,8 @@ function renderComparison() {
   // Update column headers with custom names
   const thA = document.querySelector('#comparePanel thead th:nth-child(2)');
   const thB = document.querySelector('#comparePanel thead th:nth-child(3)');
-  const nameA = ($('scenNameA') && $('scenNameA').value.trim()) || 'Scenario A';
-  const nameB = ($('scenNameB') && $('scenNameB').value.trim()) || 'Scenario B';
-  if (thA) thA.textContent = nameA;
-  if (thB) thB.textContent = nameB;
+  if (thA) thA.textContent = scenLabelA;
+  if (thB) thB.textContent = scenLabelB;
   const rows = [
     { label: 'Monthly Cost (Buy)', get: r => fmt(r.totalOwnership) },
     { label: 'Net Monthly vs Rent', get: r => fmtSigned(r.monthlyDiff) + '/mo' },
@@ -2245,9 +2238,50 @@ $('creditProfile').addEventListener('change', updatePMIHint);
 if ($('loanType')) $('loanType').addEventListener('change', updateLoanTypeHint);
 if ($('downPaymentPct')) $('downPaymentPct').addEventListener('input', updateLoanTypeHint);
 
-// Scenario name inputs — update button labels live as user types
-if ($('scenNameA')) $('scenNameA').addEventListener('input', updateScenarioUI);
-if ($('scenNameB')) $('scenNameB').addEventListener('input', updateScenarioUI);
+// Scenario button: single-click saves/switches; double-click renames
+function makeScenLabelEditable(slot) {
+  const btn = $(`btnSave${slot}`);
+  if (!btn) return;
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = slot === 'A' ? scenLabelA : scenLabelB;
+  inp.maxLength = 30;
+  inp.className = 'scen-label-edit';
+  inp.setAttribute('aria-label', `Rename Scenario ${slot}`);
+  btn.parentNode.insertBefore(inp, btn);
+  btn.style.display = 'none';
+  inp.focus();
+  inp.select();
+  function commit() {
+    const val = inp.value.trim();
+    if (slot === 'A') scenLabelA = val || 'Scenario A';
+    else scenLabelB = val || 'Scenario B';
+    inp.remove();
+    btn.style.display = '';
+    updateScenarioUI();
+    if (scenarioA && scenarioB) renderComparison();
+  }
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { inp.remove(); btn.style.display = ''; }
+  });
+}
+
+['A', 'B'].forEach(slot => {
+  const btn = $(`btnSave${slot}`);
+  if (!btn) return;
+  let clickTimer = null;
+  btn.addEventListener('click', () => {
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      makeScenLabelEditable(slot);
+    } else {
+      clickTimer = setTimeout(() => { clickTimer = null; saveScenario(slot); }, 260);
+    }
+  });
+});
 
 // Interest rate slider ↔ number input sync (NTH 6)
 const rateInput = $('interestRate');
@@ -2259,7 +2293,9 @@ if (rateInput && rateSlider) {
   });
   rateSlider.addEventListener('input', () => {
     rateInput.value = parseFloat(rateSlider.value).toFixed(3).replace(/\.?0+$/, '');
-    calculate();
+    const rc = document.getElementById('resultsContent');
+    if (rc && rc.style.display !== 'none') calculate();
+    else updateHints();
   });
 }
 

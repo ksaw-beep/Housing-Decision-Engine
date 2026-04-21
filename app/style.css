@@ -1679,20 +1679,17 @@ body.basic-mode .advanced-only { display: none !important; }
   gap: 8px;
   flex-wrap: wrap;
 }
-.scen-name-input {
-  padding: 6px 10px;
-  border: 1px solid var(--border);
+.scen-label-edit {
+  padding: 9px 14px;
+  border: 2px solid var(--gold, #8b1c2e);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text);
   background: var(--surface);
-  width: 150px;
+  min-width: 140px;
   outline: none;
-  transition: border-color 0.2s;
-}
-.scen-name-input:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 2px rgba(139,28,46,0.1);
+  box-shadow: 0 0 0 3px rgba(139,28,46,0.12);
 }
 .compare-panel { border-left: 4px solid #3b82f6; }
 .compare-table {

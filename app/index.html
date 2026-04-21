@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
@@ -317,16 +317,14 @@
 
       <div class="scenario-controls">
         <div class="scen-slot">
-          <button class="btn-scenario" id="btnSaveA" onclick="saveScenario('A')">Save as Scenario A <span class="scen-status" id="scenAStatus"></span></button>
-          <input type="text" class="scen-name-input" id="scenNameA" placeholder="Label (e.g. Buy now)" maxlength="30" aria-label="Scenario A label" style="display:none;">
+          <button class="btn-scenario" id="btnSaveA" title="Double-click to rename">Save as Scenario A <span class="scen-status" id="scenAStatus"></span></button>
         </div>
         <div class="scen-slot">
-          <button class="btn-scenario" id="btnSaveB" onclick="saveScenario('B')" style="display:none;">Save as Scenario B <span class="scen-status" id="scenBStatus"></span></button>
-          <input type="text" class="scen-name-input" id="scenNameB" placeholder="Label (e.g. Buy in 3 yrs)" maxlength="30" aria-label="Scenario B label" style="display:none;">
+          <button class="btn-scenario" id="btnSaveB" title="Double-click to rename" style="display:none;">Save as Scenario B <span class="scen-status" id="scenBStatus"></span></button>
         </div>
         <button class="btn-scenario btn-scenario-clear" onclick="clearScenarios()">Clear</button>
       </div>
-      <p class="scenario-help">Save two scenarios to compare them side by side.</p>
+      <p class="scenario-help">Save two scenarios to compare side by side. Double-click a button to rename it.</p>
 
     </div>
 
@@ -816,7 +814,7 @@
 
 </div>
 
-<script src="script.js?v=4"></script>
+<script src="script.js?v=5"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)
