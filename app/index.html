@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -927,6 +927,23 @@
         <p>A positive wealth impact means buying comes out ahead; negative means renting-and-investing does.</p>
       </details>
       <details>
+        <summary>What does the Confidence level (High / Medium / Low) mean?</summary>
+        <p><strong>Confidence</strong> measures how robust the recommendation is to reasonable changes in your inputs — not how accurate the numbers are. It's derived from four signals:</p>
+        <ul>
+          <li><strong>Break-even clarity</strong> — how soon (or whether) buying overtakes renting within 10 years.</li>
+          <li><strong>Rate cushion</strong> — how far today's rate sits from the rate at which the monthly math would flip.</li>
+          <li><strong>Price cushion</strong> — how far the home price sits from the price at which the call would flip.</li>
+          <li><strong>Wealth-impact magnitude</strong> — how large the buy-vs-rent gap is at your time horizon.</li>
+        </ul>
+        <p>Interpretation:</p>
+        <ul>
+          <li><strong>High</strong> — the answer holds even if rates move ±1% or the home price drifts ±10%. You're well clear of the tipping points.</li>
+          <li><strong>Medium</strong> — a ~1% rate swing or ~10% price change could flip this. Worth re-running with slightly different assumptions.</li>
+          <li><strong>Low</strong> — essentially a coin flip. Small changes to rate, price, rent, or horizon can swap the recommendation. Run a second scenario before committing.</li>
+        </ul>
+        <p>Low confidence isn&#x2019;t a "bad" result — it means the two paths are genuinely close, and the tipping-point dial above will be near center to reflect that.</p>
+      </details>
+      <details>
         <summary>What assumptions drive these numbers?</summary>
         <p>The biggest levers are your <strong>interest rate</strong>, <strong>appreciation rate</strong>, <strong>investment return</strong>, <strong>time horizon</strong>, and <strong>rent growth</strong>. We also apply <strong>closing costs</strong> (default 3%) and <strong>selling costs at exit</strong> (default 6%).</p>
         <p>See the "Assumptions &amp; Notes" section at the bottom of the analysis for the full list. Every number is driven by your inputs — nothing is hardcoded.</p>
@@ -949,7 +966,7 @@
 
 </div>
 
-<script src="script.js?v=10"></script>
+<script src="script.js?v=11"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)

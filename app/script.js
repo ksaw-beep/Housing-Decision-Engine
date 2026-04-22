@@ -1277,7 +1277,7 @@ function calculate() {
   const wi = decision.wealth5.wealthImpact;
   // === TIPPING-POINT DIAL ===
   // Needle angle ranges from -90° (full left = Rent strongly) to +90° (full right = Buy strongly).
-  // We use a softened log scale so $5K and $500K both register, but extremes don't clip.
+  // Linear scale: $50K delta = full deflection. Small deltas visibly lean; genuine ties stay center.
   (function renderTippingDial() {
     const needle = $('tippingDialNeedle');
     const cap = $('tippingDialCaption');
@@ -1285,13 +1285,11 @@ function calculate() {
     const wi = decision.wealth5.wealthImpact;
     const sign = wi >= 0 ? 1 : -1;
     const absWi = Math.abs(wi);
-    // Log scale with $1K floor and $200K for full deflection
-    const SCALE_MAX = 200000;
-    const logFloor = Math.log10(1000);
-    const logMax = Math.log10(SCALE_MAX);
-    const logVal = Math.log10(Math.max(absWi, 1000));
-    const norm = Math.min(1, Math.max(0, (logVal - logFloor) / (logMax - logFloor)));
+    const SCALE_MAX = 50000; // $50K wealth delta = full 90° deflection
+    const norm = Math.min(1, absWi / SCALE_MAX);
     const angle = sign * norm * 90;
+    // Use CSS custom property so the transition interpolates reliably across browsers.
+    needle.style.setProperty('--needle-angle', angle.toFixed(2) + 'deg');
     needle.setAttribute('transform', `rotate(${angle.toFixed(2)} 100 100)`);
     // Caption
     const absFmt = fmt(absWi);
