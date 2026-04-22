@@ -1118,6 +1118,7 @@ function calculate() {
     rentalIncome: num('rentalIncome'),
     vacancyPct: num('vacancyPct'),
     expenseRatioPct: num('expenseRatioPct'),
+    propertyState: $('propertyState') ? $('propertyState').value : '',
     creditProfile: $('creditProfile').value,
     loanType: $('loanType') ? $('loanType').value : 'Conventional',
     closingCostsPct: num('closingCostsPct'),
@@ -2001,6 +2002,7 @@ const SCENARIO_INPUT_MAP = [
   ['downPaymentPct', 'downPct'],
   ['interestRate', 'rate'],
   ['loanTerm', 'term'],
+  ['propertyState', 'propertyState'],
   ['propertyTax', 'taxPct'],
   ['insurance', 'insuranceAnnual'],
   ['maintenance', 'maintPct'],
@@ -2033,6 +2035,14 @@ function loadScenarioIntoInputs(scen) {
   // Move-out year lives under its own key
   const mo = $('moveOutYear');
   if (mo && p.moveOutYear !== undefined) mo.value = p.moveOutYear;
+  // Sync the interest rate slider position
+  const rateSlider = $('interestRateSlider');
+  if (rateSlider && p.rate !== undefined) {
+    const v = parseFloat(p.rate);
+    if (!isNaN(v) && v >= 2 && v <= 12) rateSlider.value = v;
+  }
+  // Mark tax as intentionally set so onStateChange won't overwrite it
+  userEditedPropertyTax = true;
   // Refresh derived hints / helper text
   updateHints();
   updateLoanTypeHint();
@@ -2058,8 +2068,8 @@ function saveScenario(slot) {
     alert('Click "Analyze My Options" first to generate a result to save.');
     return;
   }
-  if (slot === 'A') scenarioA = Object.assign({}, lastResult);
-  else scenarioB = Object.assign({}, lastResult);
+  if (slot === 'A') scenarioA = structuredClone(lastResult);
+  else scenarioB = structuredClone(lastResult);
   activeSlot = slot;
   updateScenarioUI();
 }
