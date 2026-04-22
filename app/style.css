@@ -1691,6 +1691,19 @@ body.basic-mode .advanced-only { display: none !important; }
   outline: none;
   box-shadow: 0 0 0 3px rgba(139,28,46,0.12);
 }
+.scenario-active-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  letter-spacing: 0.02em;
+}
 .compare-panel { border-left: 4px solid #3b82f6; }
 .compare-table {
   width: 100%;

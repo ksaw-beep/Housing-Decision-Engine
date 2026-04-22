@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -324,7 +324,7 @@
         </div>
         <button class="btn-scenario btn-scenario-clear" onclick="clearScenarios()">Clear</button>
       </div>
-      <p class="scenario-help">Save two scenarios to compare side by side. Double-click a button to rename it.</p>
+      <p class="scenario-help">Set up your inputs, click <strong>Save</strong> to lock in a scenario, then change inputs and save a second. Click <strong>View</strong> to toggle between them — the full analysis updates automatically. Double-click a button to rename it.</p>
 
     </div>
 
@@ -343,6 +343,9 @@
           <span class="analysis-status-icon" aria-hidden="true">✓</span>
           <span id="analysisStatusText">Analysis updated</span>
         </div>
+
+        <!-- Active scenario badge — shown when a saved scenario is being viewed -->
+        <div class="scenario-active-badge" id="scenarioActiveBadge" style="display:none;" aria-live="polite"></div>
 
         <!-- ========== YOUR DECISION PLAN ========== -->
         <div class="decision-plan paid-only" id="decisionPlan">
@@ -814,7 +817,7 @@
 
 </div>
 
-<script src="script.js?v=6"></script>
+<script src="script.js?v=7"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)

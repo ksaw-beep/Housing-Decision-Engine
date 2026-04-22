@@ -1099,7 +1099,7 @@ function renderWealthChart(params, breakEven) {
 function calculate() {
   // ---------- INPUT VALIDATION (P6) ----------
   if (!validateInputs()) {
-    return;
+    return false;
   }
 
   // Gather all inputs into a params object
@@ -1585,6 +1585,7 @@ function calculate() {
   }
 
   if (!window.paidAccessVerified) injectUnlockButtons();
+  return true;
 }
 
 // ---------- RESET ----------
@@ -2051,23 +2052,20 @@ function loadScenarioIntoInputs(scen) {
 }
 
 // Click handler on the Save/Scenario buttons. Behaviors:
-//   - Slot empty: save the current result into that slot and make it active.
-//   - Slot already saved AND it's the active slot: update it with the latest result.
-//   - Slot already saved AND NOT active: load its inputs into the form and recalculate.
+//   - Slot empty OR active slot: run analysis with current inputs, then save/update.
+//   - Saved slot that is NOT active: restore its inputs + re-run its analysis.
 function saveScenario(slot) {
   const existing = (slot === 'A') ? scenarioA : scenarioB;
   if (existing && activeSlot !== slot) {
-    // Switch to the other saved scenario — load its inputs and recalc.
+    // VIEW the other saved scenario — restore its inputs and re-run its analysis.
     activeSlot = slot;
     loadScenarioIntoInputs(existing);
-    calculate(); // refreshes lastResult and re-renders UI for the loaded scenario
+    calculate();
     return;
   }
-  // Save or update: we need a fresh lastResult for the current inputs.
-  if (!lastResult) {
-    alert('Click "Analyze My Options" first to generate a result to save.');
-    return;
-  }
+  // SAVE or UPDATE: always run calculate() first so we capture the current
+  // inputs, not whatever lastResult happens to be left over from a prior run.
+  if (!calculate()) return; // validation failed — errors already shown in form
   if (slot === 'A') scenarioA = structuredClone(lastResult);
   else scenarioB = structuredClone(lastResult);
   activeSlot = slot;
@@ -2089,15 +2087,26 @@ function updateScenarioUI() {
   const statusB = $('scenBStatus');
   if (!btnA) return;
   // Status: saved / active marker
-  statusA.textContent = scenarioA ? (activeSlot === 'A' ? '● Active' : '✓ Saved') : '';
-  statusB.textContent = scenarioB ? (activeSlot === 'B' ? '● Active' : '✓ Saved') : '';
-  // Button labels reflect intent (save / update / switch).
+  statusA.textContent = scenarioA ? (activeSlot === 'A' ? '● Viewing' : '✓ Saved') : '';
+  statusB.textContent = scenarioB ? (activeSlot === 'B' ? '● Viewing' : '✓ Saved') : '';
+  // Button labels reflect intent.
   btnA.firstChild.nodeValue = !scenarioA
     ? `Save as ${scenLabelA} `
-    : (activeSlot === 'A' ? `Update ${scenLabelA} ` : `Switch to ${scenLabelA} `);
+    : (activeSlot === 'A' ? `Update ${scenLabelA} ` : `View ${scenLabelA} `);
   btnB.firstChild.nodeValue = !scenarioB
     ? `Save as ${scenLabelB} `
-    : (activeSlot === 'B' ? `Update ${scenLabelB} ` : `Switch to ${scenLabelB} `);
+    : (activeSlot === 'B' ? `Update ${scenLabelB} ` : `View ${scenLabelB} `);
+  // Active-scenario badge in the results panel
+  const badge = $('scenarioActiveBadge');
+  if (badge) {
+    if (activeSlot) {
+      const lbl = activeSlot === 'A' ? scenLabelA : scenLabelB;
+      badge.textContent = `Viewing: ${lbl}`;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
   // Active highlight
   btnA.classList.toggle('btn-scenario-active', activeSlot === 'A');
   btnB.classList.toggle('btn-scenario-active', activeSlot === 'B');
