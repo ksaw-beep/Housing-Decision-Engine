@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
@@ -70,7 +70,12 @@
         </div>
         <div class="input-row-2">
           <div class="input-group">
-            <label for="downPaymentPct">Down Payment</label>
+            <label for="downPaymentPct">Down Payment
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Down Payment" aria-describedby="tip-downpayment" title="Down Payment" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-downpayment">The cash you put down at closing. Below 20% you'll typically pay mortgage insurance (PMI on Conventional, MIP on FHA) until enough equity builds. Enter 0–100%.</span>
+              </span>
+            </label>
             <div class="input-wrap percent">
               <input type="number" id="downPaymentPct" value="10" min="0" max="100" step="0.5">
             </div>
@@ -78,7 +83,12 @@
             <span class="input-bench loan-type-note" id="loanTypeNote" style="display:none;">⚠ With less than 20% down, you may benefit from an FHA loan. Switch to <strong>Advanced</strong> mode to compare loan types.</span>
           </div>
           <div class="input-group">
-            <label for="interestRate">Interest Rate</label>
+            <label for="interestRate">Interest Rate
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Interest Rate" aria-describedby="tip-rate" title="Interest Rate" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-rate">Your annual mortgage interest rate. Use today's market rates as a starting point; actual rates depend on credit, down payment, loan type, and lender. Try a range using the slider.</span>
+              </span>
+            </label>
             <div class="input-wrap percent">
               <input type="number" id="interestRate" value="6.75" min="0" max="15" step="0.125">
             </div>
@@ -87,7 +97,12 @@
           </div>
         </div>
         <div class="input-group">
-          <label for="timeHorizon">How long do you plan to own?</label>
+          <label for="timeHorizon">How long do you plan to own?
+            <span class="tip-wrap">
+              <button type="button" class="tip-btn" aria-label="More info about ownership horizon" aria-describedby="tip-horizon" title="Ownership Horizon" onclick="tipToggle(this)">?</button>
+              <span class="tip-content" role="tooltip" id="tip-horizon">How many years you expect to hold this property. A longer horizon gives equity and appreciation more time to outweigh upfront costs. Enter 0 to analyze an immediate purchase.</span>
+            </span>
+          </label>
           <div class="input-wrap years">
             <input type="number" id="timeHorizon" value="5" min="0" max="30" step="1">
           </div>
@@ -102,7 +117,12 @@
         </div>
         <div class="input-row-2 advanced-only">
           <div class="input-group">
-            <label for="closingCostsPct">Closing Costs</label>
+            <label for="closingCostsPct">Closing Costs
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Closing Costs" aria-describedby="tip-closing" title="Closing Costs" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-closing">Lender fees, title insurance, taxes, and escrow due at closing, expressed as a percent of home price. Typical range is 2–5%.</span>
+              </span>
+            </label>
             <div class="input-wrap percent">
               <input type="number" id="closingCostsPct" value="3" min="0" max="10" step="0.5">
             </div>
@@ -110,7 +130,12 @@
             <span class="input-bench">Typical range is 2–5% of home price.</span>
           </div>
           <div class="input-group">
-            <label for="sellingCostsPct">Selling Costs (% of home price)</label>
+            <label for="sellingCostsPct">Selling Costs (% of home price)
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Selling Costs" aria-describedby="tip-selling" title="Selling Costs" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-selling">Costs deducted from your home's value when you sell — mainly agent commissions plus transaction fees. Typical range is 5–8%. Applied to the home's projected value at exit.</span>
+              </span>
+            </label>
             <div class="input-wrap percent">
               <input type="number" id="sellingCostsPct" value="6" min="0" max="15" step="0.5">
             </div>
@@ -125,7 +150,12 @@
             </div>
           </div>
           <div class="input-group">
-            <label for="homeAppreciation">Appreciation</label>
+            <label for="homeAppreciation">Appreciation
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Home Appreciation" aria-describedby="tip-appreciation" title="Home Appreciation" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-appreciation">Estimated annual rise in your home's value. Long-run U.S. average is ~3–4%. Enter a negative value to model a declining market.</span>
+              </span>
+            </label>
             <div class="input-wrap percent">
               <input type="number" id="homeAppreciation" value="3" min="-5" max="15" step="0.5">
             </div>
@@ -133,7 +163,12 @@
           </div>
         </div>
         <div class="input-group advanced-only">
-          <label for="creditProfile">Credit Score Range</label>
+          <label for="creditProfile">Credit Score Range
+            <span class="tip-wrap">
+              <button type="button" class="tip-btn" aria-label="More info about Credit Score Range" aria-describedby="tip-credit" title="Credit Score Range" onclick="tipToggle(this)">?</button>
+              <span class="tip-content" role="tooltip" id="tip-credit">Used to estimate your PMI rate for planning purposes only — not a lender quote. Lower scores typically mean higher PMI and a higher interest rate in the real market.</span>
+            </span>
+          </label>
           <div class="input-wrap select">
             <select id="creditProfile">
               <option value="760+">760+</option>
@@ -147,11 +182,18 @@
           <span class="input-bench">Used to estimate PMI for planning purposes — not a lender quote.</span>
         </div>
         <div class="input-group advanced-only">
-          <label for="loanType">Loan Type</label>
+          <label for="loanType">Loan Type
+            <span class="tip-wrap">
+              <button type="button" class="tip-btn" aria-label="More info about Loan Type" aria-describedby="tip-loantype" title="Loan Type" onclick="tipToggle(this)">?</button>
+              <span class="tip-content" role="tooltip" id="tip-loantype">Conventional loans use PMI that can be removed once you reach 20% equity. FHA loans allow lower down payments but charge ongoing MIP — often for the life of the loan when the original down payment is under 10%.</span>
+            </span>
+          </label>
           <div class="input-wrap select">
             <select id="loanType">
               <option value="Conventional" selected>Conventional</option>
               <option value="FHA">FHA</option>
+              <option value="VA">VA (eligible veterans / service members)</option>
+              <option value="Jumbo">Jumbo (loan exceeds conforming limit)</option>
             </select>
           </div>
           <span class="input-bench" id="loanTypeBench">Conventional: PMI may be removable once sufficient equity is reached.</span>
@@ -167,7 +209,7 @@
           <div class="input-group">
             <label for="propertyTax">Property Tax Rate (annual % of home value)
               <span class="tip-wrap">
-                <button type="button" class="tip-btn" aria-describedby="tip-propertytax" title="Property Tax Rate" onclick="tipToggle(this)">?</button>
+                <button type="button" class="tip-btn" aria-label="More info about Property Tax Rate" aria-describedby="tip-propertytax" title="Property Tax Rate" onclick="tipToggle(this)">?</button>
                 <span class="tip-content" role="tooltip" id="tip-propertytax">Enter your best estimate. Property taxes vary significantly by location. Use the state dropdown above as a starting point.</span>
               </span>
             </label>
@@ -223,7 +265,12 @@
             <span class="input-bench">Long-run U.S. average: ~3% per year</span>
           </div>
           <div class="input-group">
-            <label for="investReturn">Investment Return (%)</label>
+            <label for="investReturn">Investment Return (%)
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Investment Return" aria-describedby="tip-investret" title="Investment Return" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-investret">The annual return a renter could earn by investing their down payment and monthly savings in a diversified portfolio. 7% is a historical broad-market estimate — lower it for a more conservative scenario.</span>
+              </span>
+            </label>
             <div class="input-wrap percent">
               <input type="number" id="investReturn" value="7" min="0" max="20" step="0.5">
             </div>
@@ -237,7 +284,7 @@
           <span class="panel-icon" aria-hidden="true">🏘️</span>
           <h2 class="panel-title">House Hack (Multi-Family)</h2>
         </div>
-        <p class="panel-subtitle" id="hackSubtitle">Enter a rental income amount to activate house hack analysis.</p>
+        <p class="panel-subtitle hack-na" id="hackSubtitle"><strong>N/A —</strong> no rental income entered. Add a gross monthly rental amount below to activate house hack analysis.</p>
         <div class="input-group">
           <label for="rentalIncome">Gross Monthly Rental Income (Other Units)</label>
           <div class="input-wrap dollar">
@@ -250,7 +297,7 @@
           <div class="input-group">
             <label for="vacancyPct">Vacancy Rate
               <span class="tip-wrap">
-                <button type="button" class="tip-btn" aria-describedby="tip-vacancy" onclick="tipToggle(this)">?</button>
+                <button type="button" class="tip-btn" aria-label="More info about Vacancy Rate" aria-describedby="tip-vacancy" onclick="tipToggle(this)">?</button>
                 <span class="tip-content" role="tooltip" id="tip-vacancy">Percentage of time the unit sits empty between tenants. Even a few weeks per year adds up. Typical range: 5–10%.</span>
               </span>
             </label>
@@ -262,7 +309,7 @@
           <div class="input-group">
             <label for="expenseRatioPct">Operating Costs (% of rent)
               <span class="tip-wrap">
-                <button type="button" class="tip-btn" aria-describedby="tip-expratio" onclick="tipToggle(this)">?</button>
+                <button type="button" class="tip-btn" aria-label="More info about Operating Costs" aria-describedby="tip-expratio" onclick="tipToggle(this)">?</button>
                 <span class="tip-content" role="tooltip" id="tip-expratio">The share of rental income consumed by repairs, turnover, management fees, and other operating costs. 25% is a common planning estimate. Does not include mortgage or taxes.</span>
               </span>
             </label>
@@ -362,6 +409,29 @@
             </div>
           </div>
           <div class="dp-horizon" id="dpHorizon"></div>
+
+          <!-- Tipping-Point Dial — shows how decisive the recommendation is -->
+          <div class="tipping-dial" id="tippingDial" aria-hidden="true">
+            <svg class="tipping-dial-svg" viewBox="0 0 200 120" role="img" aria-label="Tipping-point dial">
+              <!-- Arc segments: red (rent strongly), amber (lean rent), neutral, amber (lean buy), green (buy strongly) -->
+              <path d="M 20 100 A 80 80 0 0 1 55.9 34.1" stroke="#c53030" stroke-width="14" fill="none" stroke-linecap="butt"/>
+              <path d="M 55.9 34.1 A 80 80 0 0 1 91.7 20.8" stroke="#dd8a3a" stroke-width="14" fill="none"/>
+              <path d="M 91.7 20.8 A 80 80 0 0 1 108.3 20.8" stroke="#c8bfb4" stroke-width="14" fill="none"/>
+              <path d="M 108.3 20.8 A 80 80 0 0 1 144.1 34.1" stroke="#7bab3f" stroke-width="14" fill="none"/>
+              <path d="M 144.1 34.1 A 80 80 0 0 1 180 100" stroke="#15803d" stroke-width="14" fill="none"/>
+              <!-- End labels -->
+              <text x="20" y="115" text-anchor="middle" class="tip-dial-end-label">Rent</text>
+              <text x="180" y="115" text-anchor="middle" class="tip-dial-end-label">Buy</text>
+              <!-- Needle (rotated by JS via CSS var --needle-angle) -->
+              <g class="tipping-dial-needle" id="tippingDialNeedle">
+                <line x1="100" y1="100" x2="100" y2="30" stroke="#2b2420" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="100" cy="100" r="7" fill="#2b2420"/>
+                <circle cx="100" cy="100" r="3" fill="#f7f2eb"/>
+              </g>
+            </svg>
+            <div class="tipping-dial-caption" id="tippingDialCaption"></div>
+          </div>
+
           <div class="dp-conf-explanation" id="dpConfExplanation"></div>
           <div class="dp-narrative">
             <div class="dp-narr-block">
@@ -391,7 +461,7 @@
             <div class="dp-metric">
               <div class="dp-metric-label" id="dpWealthImpactLabel">5-Year Wealth Impact
                 <span class="tip-wrap">
-                  <button type="button" class="tip-btn" aria-describedby="tip-wealthimpact" onclick="tipToggle(this)">?</button>
+                  <button type="button" class="tip-btn" aria-label="More info about Wealth Impact" aria-describedby="tip-wealthimpact" onclick="tipToggle(this)">?</button>
                   <span class="tip-content" role="tooltip" id="tip-wealthimpact">The total dollar difference in your net worth between buying and renting + investing the difference, over your selected time horizon.</span>
                 </span>
               </div>
@@ -420,7 +490,7 @@
         <div class="kpi-row">
           <div class="kpi-card" style="--accent: var(--blue)">
             <div class="kpi-label">Mortgage Payment (Principal &amp; Interest)
-              <span class="kpi-sublabel">Principal + interest only — does not include tax, insurance, or PMI</span>
+              <span class="kpi-sublabel">Principal + interest only — does not include tax, insurance, or mortgage insurance (PMI / FHA MIP)</span>
             </div>
             <div class="kpi-value" id="kpiMortgage">—</div>
           </div>
@@ -474,6 +544,7 @@
         <!-- ========== COST COMPARISON BAR ========== -->
         <div class="panel comparison-panel">
           <h3 class="panel-title">Monthly Cost Comparison</h3>
+          <p class="panel-context">A quick visual of what you'd pay each month under each option. Use this to sanity-check whether buying costs more or less than renting before factoring in equity and appreciation.</p>
           <div class="bar-group">
             <div class="bar-row">
               <span class="bar-label">Rent</span>
@@ -524,7 +595,7 @@
                 <div class="wealth-line total">
                   <span>Net position
                     <span class="tip-wrap">
-                      <button type="button" class="tip-btn" aria-describedby="tip-buynet" onclick="tipToggle(this)">?</button>
+                      <button type="button" class="tip-btn" aria-label="More info about Buy net position" aria-describedby="tip-buynet" onclick="tipToggle(this)">?</button>
                       <span class="tip-content" role="tooltip" id="tip-buynet">Your total wealth from buying over your time horizon: equity and appreciation gained, minus all cash spent (down payment, closing costs, monthly ownership costs).</span>
                     </span>
                   </span>
@@ -550,7 +621,7 @@
                 <div class="wealth-line total">
                   <span>Net position
                     <span class="tip-wrap">
-                      <button type="button" class="tip-btn" aria-describedby="tip-rentnet" onclick="tipToggle(this)">?</button>
+                      <button type="button" class="tip-btn" aria-label="More info about Rent net position" aria-describedby="tip-rentnet" onclick="tipToggle(this)">?</button>
                       <span class="tip-content" role="tooltip" id="tip-rentnet">Your total wealth from renting over your time horizon: investment gains (down payment + monthly savings invested) minus all rent paid.</span>
                     </span>
                   </span>
@@ -567,6 +638,7 @@
         <div class="panel chart-panel paid-only">
           <h3 class="panel-title">Wealth Over Time</h3>
           <p class="panel-subtitle">How does your net financial position evolve year by year?</p>
+          <p class="panel-context">Watch where the two lines cross — that's the break-even year. The further past crossing you plan to stay, the more confidently buying wins. If they never cross, renting-and-investing is the sturdier play under your assumptions.</p>
           <div class="chart-container" id="chartContainer">
             <canvas id="wealthChart" role="img" aria-label="Wealth over time chart comparing buying vs renting net financial position, year by year"></canvas>
             <div class="chart-tooltip" id="chartTooltip"></div>
@@ -579,7 +651,8 @@
           <div class="chart-callouts" id="chartCallouts"></div>
           <div class="chart-insight" id="chartInsight"></div>
           <div class="chart-insight" id="transitionInsight" style="display:none;"></div>
-          <button type="button" class="btn-data-table" id="btnChartDataTable" onclick="toggleChartDataTable()">Show data table</button>
+          <button type="button" class="btn-data-table" id="btnChartDataTable" aria-expanded="false" aria-controls="chartDataTableWrap" onclick="toggleChartDataTable()">Show data table</button>
+          <span class="visually-hidden" id="chartSrSummary" aria-live="polite"></span>
           <div class="chart-data-table-wrap" id="chartDataTableWrap" style="display:none;">
             <table class="chart-data-table">
               <thead><tr><th>Year</th><th>Buy Net</th><th>Rent Net</th><th>Difference</th></tr></thead>
@@ -592,7 +665,7 @@
         <div class="panel breakeven-panel paid-only">
           <h3 class="panel-title">Break-Even Analysis
             <span class="tip-wrap">
-              <button type="button" class="tip-btn" aria-describedby="tip-breakeven" onclick="tipToggle(this)">?</button>
+              <button type="button" class="tip-btn" aria-label="More info about Break-Even Analysis" aria-describedby="tip-breakeven" onclick="tipToggle(this)">?</button>
               <span class="tip-content" role="tooltip" id="tip-breakeven">The month when buying overtakes renting in total net wealth — accounting for equity, appreciation, and all investment returns. Before this point, renting and investing comes out ahead on net wealth.</span>
             </span>
           </h3>
@@ -650,6 +723,7 @@
         <div class="panel sensitivity-panel paid-only">
           <h3 class="panel-title">Sensitivity Analysis</h3>
           <p class="panel-subtitle">What would need to change to shift the recommendation?</p>
+          <p class="panel-context">A small cushion means the recommendation is fragile — a rate tick or price change could flip it. A wide cushion means you're on solid ground.</p>
           <div class="sens-grid">
             <div class="sens-card" id="sensRateCard">
               <div class="sens-icon" id="sensRateIcon">📉</div>
@@ -784,7 +858,11 @@
 
         <!-- ========== ASSUMPTIONS ========== -->
         <div class="panel assumptions-panel">
-          <h3 class="panel-title">Assumptions & Notes</h3>
+          <details class="assumptions-details">
+            <summary>
+              <h3 class="panel-title assumptions-title">Assumptions &amp; Notes</h3>
+              <span class="assumptions-hint">Tap to expand</span>
+            </summary>
           <ul class="assumptions-list">
             <li>Mortgage calculated using standard amortization formula</li>
             <li>Closing costs are included as a % of home price (user-editable, default 3%) and added to the total upfront cash outflow for both break-even and wealth comparisons</li>
@@ -803,12 +881,66 @@
             <li>Benchmarks shown next to inputs are planning guides based on long-run averages — not exact quotes for your specific home, lender, or insurer</li>
             <li>This is a planning tool, not a lender quote or financial advice — consult a financial advisor for major decisions</li>
           </ul>
+          </details>
         </div>
 
       </div>
     </div>
 
   </div>
+
+  <!-- FAQ HELP DRAWER — accessible side panel with plain-English explainers -->
+  <button type="button" class="faq-fab" id="faqFab" aria-label="Open help and FAQs" aria-haspopup="dialog" aria-expanded="false" aria-controls="faqDrawer" onclick="toggleFaqDrawer()">
+    <span aria-hidden="true">?</span>
+    <span class="faq-fab-label">Help &amp; FAQs</span>
+  </button>
+  <div class="faq-backdrop" id="faqBackdrop" hidden onclick="toggleFaqDrawer(false)"></div>
+  <aside class="faq-drawer" id="faqDrawer" role="dialog" aria-modal="true" aria-labelledby="faqDrawerTitle" aria-hidden="true" hidden>
+    <header class="faq-drawer-head">
+      <h2 id="faqDrawerTitle">Help &amp; FAQs</h2>
+      <button type="button" class="faq-drawer-close" aria-label="Close help panel" onclick="toggleFaqDrawer(false)">×</button>
+    </header>
+    <div class="faq-drawer-body">
+      <details open>
+        <summary>What is PMI? What about FHA MIP or a VA funding fee?</summary>
+        <p><strong>PMI (Private Mortgage Insurance)</strong> is an extra monthly charge on Conventional loans when your down payment is under 20%. It protects the lender — not you — and can usually be removed once you reach 20% equity.</p>
+        <p><strong>FHA MIP (Mortgage Insurance Premium)</strong> is the FHA equivalent. It's required on all FHA loans and often lasts 11 years, or the life of the loan if your down payment is under 10%.</p>
+        <p><strong>VA funding fee</strong> is a one-time upfront charge (~1.25–3.3% of the loan) on VA loans instead of monthly MI. This tool doesn't add it to your monthly payment — add it to your closing cost estimate if it applies.</p>
+      </details>
+      <details>
+        <summary>What is DTI and why does it matter?</summary>
+        <p><strong>Debt-to-Income (DTI)</strong> is the share of your gross monthly income that goes to housing plus other debts (car, student loans, credit cards, etc.). Lenders use it to gauge whether you can comfortably take on a mortgage.</p>
+        <p>Rough benchmarks: <strong>≤ 36%</strong> generally stronger · <strong>36–45%</strong> may still qualify with good credit/reserves · <strong>&gt; 45%</strong> stretch territory. This tool shows DTI for reference only — it does not determine approval.</p>
+      </details>
+      <details>
+        <summary>What does "break-even" mean here?</summary>
+        <p>The <strong>break-even</strong> point is the month when buying's total net wealth overtakes renting-and-investing. Before that point, a renter who invested the down payment plus the monthly cash-flow difference would be ahead. After that point, equity + appreciation pull buying ahead.</p>
+        <p>Our engine searches month-by-month out to 10 years. If no sustained crossover exists, we report "not within 10 years."</p>
+      </details>
+      <details>
+        <summary>What is "wealth impact" over my time horizon?</summary>
+        <p>It's the dollar difference in your net financial position between buying and renting at the end of your planned ownership horizon. Both sides are computed the same way:</p>
+        <ul>
+          <li><strong>Buy side:</strong> equity built (down payment + principal paid + appreciation) minus all cash out (closing costs, monthly ownership costs, selling costs at exit).</li>
+          <li><strong>Rent side:</strong> investment gains on the cash you didn't spend on the home and on any monthly savings, minus all rent paid.</li>
+        </ul>
+        <p>A positive wealth impact means buying comes out ahead; negative means renting-and-investing does.</p>
+      </details>
+      <details>
+        <summary>What assumptions drive these numbers?</summary>
+        <p>The biggest levers are your <strong>interest rate</strong>, <strong>appreciation rate</strong>, <strong>investment return</strong>, <strong>time horizon</strong>, and <strong>rent growth</strong>. We also apply <strong>closing costs</strong> (default 3%) and <strong>selling costs at exit</strong> (default 6%).</p>
+        <p>See the "Assumptions &amp; Notes" section at the bottom of the analysis for the full list. Every number is driven by your inputs — nothing is hardcoded.</p>
+      </details>
+      <details>
+        <summary>How should I use the Scenario A / B comparison?</summary>
+        <p>Save a scenario with your primary assumptions, then change one or two inputs (like down payment or time horizon) and save the second. The side-by-side comparison shows how the recommendation shifts. Double-click a scenario button to rename it (e.g. "Buy now" vs "Wait 2 years").</p>
+      </details>
+      <details>
+        <summary>Is this financial advice?</summary>
+        <p>No. This is a planning tool for educational purposes. It does not determine mortgage qualification and is not a substitute for a lender, financial advisor, or HUD-approved housing counselor. For binding numbers, get a Loan Estimate from at least 3 lenders.</p>
+      </details>
+    </div>
+  </aside>
 
   <footer class="footer">
     <p>Housing Decision Engine &mdash; For educational purposes. Not financial advice.</p>
@@ -817,7 +949,7 @@
 
 </div>
 
-<script src="script.js?v=7"></script>
+<script src="script.js?v=10"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)

@@ -125,8 +125,11 @@ function calcMonthlyFHAMIP(homePrice, downPct) {
 }
 
 // Dispatcher: returns the appropriate monthly mortgage insurance for the loan type.
+// VA: no monthly MI (VA funding fee is an upfront cost, not modeled here — note shown to user).
+// Jumbo: monthly MI behavior varies by lender; use Conventional PMI as a reasonable default.
 function calcMonthlyMI(homePrice, downPct, profile, loanType) {
   if (loanType === 'FHA') return calcMonthlyFHAMIP(homePrice, downPct);
+  if (loanType === 'VA') return 0;
   return calcMonthlyPMI(homePrice, downPct, profile);
 }
 
@@ -178,6 +181,10 @@ function updatePMIHint() {
   const dpPct = num('downPaymentPct');
   const profile = $('creditProfile') ? $('creditProfile').value : DEFAULT_PROFILE;
   const loanType = $('loanType') ? $('loanType').value : 'Conventional';
+  if (loanType === 'VA') {
+    benchEl.textContent = 'VA loans carry no monthly mortgage insurance (funding fee applies at closing).';
+    return;
+  }
   if (loanType === 'FHA') {
     const mip = calcMonthlyFHAMIP(price, dpPct);
     benchEl.textContent = `Est. FHA MIP: ${fmt(mip)}/mo (life of loan)`;
@@ -189,19 +196,50 @@ function updatePMIHint() {
   }
   const pmi = calcMonthlyPMI(price, dpPct, profile);
   benchEl.textContent = `Est. PMI: ${fmt(pmi)}/mo`;
-  // Credit score rate advisory
+  // Credit score rate advisory — includes an actionable "Apply" button that
+  // bumps the interest rate input to a typical adjusted value for that tier.
   const rateNoteEl = $('creditRateNote');
   if (rateNoteEl) {
-    if (profile === 'below660') {
-      rateNoteEl.textContent = '⚠ Credit below 660 may increase your interest rate by 0.5–1.5% above advertised rates. Consider using a higher rate in your analysis.';
+    const currentRate = parseFloat($('interestRate').value) || 6.75;
+    // Tier bumps, roughly centered on industry LLPA guidance
+    const bumps = { 'below660': 1.0, '660-699': 0.5, '700-739': 0.25, '740-759': 0, '760+': 0 };
+    const bump = bumps[profile] || 0;
+    if (bump > 0) {
+      const suggested = Math.round((currentRate + bump) * 1000) / 1000;
+      rateNoteEl.innerHTML =
+        (profile === 'below660'
+          ? '⚠ Credit below 660 may add ~0.5–1.5% to your rate. '
+          : (profile === '660-699'
+              ? '⚠ Credit in 660–699 range may add ~0.25–0.75% to your rate. '
+              : 'Credit in 700–739 range may add ~0.125–0.375% to your rate. ')) +
+        `<button type="button" class="btn-apply-suggestion" data-suggested="${suggested}">Apply suggested ${suggested.toFixed(3).replace(/\.?0+$/, '')}%</button>`;
       rateNoteEl.style.display = '';
-    } else if (profile === '660-699') {
-      rateNoteEl.textContent = 'Credit in 660–699 range may increase your rate by ~0.25–0.75%. Consider adjusting your interest rate input slightly upward.';
-      rateNoteEl.style.display = '';
+      const applyBtn = rateNoteEl.querySelector('.btn-apply-suggestion');
+      if (applyBtn) {
+        applyBtn.addEventListener('click', () => {
+          const v = parseFloat(applyBtn.getAttribute('data-suggested'));
+          if (!isNaN(v)) {
+            $('interestRate').value = v;
+            const slider = $('interestRateSlider');
+            if (slider && v >= 2 && v <= 12) slider.value = v;
+            updateHints();
+          }
+        });
+      }
     } else {
       rateNoteEl.style.display = 'none';
     }
   }
+  // Auto-hide the Credit Score Range input when it doesn't influence PMI:
+  //   - Conventional + DP >= 20%  → no PMI
+  //   - VA                        → no monthly MI at all
+  // FHA MIP and <20% Conventional PMI DO use the tier → keep it visible.
+  const creditGroup = $('creditProfile') ? $('creditProfile').closest('.input-group') : null;
+  if (creditGroup) {
+    const pmiMatters = (loanType === 'Conventional' && dpPct < 20) || loanType === 'FHA';
+    creditGroup.style.display = pmiMatters ? '' : 'none';
+  }
+
   if (document.body.classList.contains('basic-mode') && dpPct < 20 && loanType === 'Conventional') {
     const noteEl = document.getElementById('loanTypeNote');
     if (noteEl) noteEl.style.display = '';
@@ -239,6 +277,10 @@ function updateLoanTypeHint() {
   }
   if (t === 'FHA') {
     bench.textContent = 'FHA mortgage insurance (MIP) works differently from conventional PMI — it often lasts 11 years or the life of the loan depending on your original down payment. For down payments below 10%, MIP lasts the full loan term.';
+  } else if (t === 'VA') {
+    bench.textContent = 'VA loans (for eligible veterans / active service members) require no down payment and no monthly mortgage insurance. Note: a one-time VA funding fee (~1.25–3.3% of the loan) applies at closing and is not modeled here — factor it into your closing cost estimate.';
+  } else if (t === 'Jumbo') {
+    bench.textContent = 'Jumbo loans exceed the conforming limit (~$766K in most counties). Terms vary widely by lender: expect higher rates, stricter credit/income underwriting, and sometimes larger down-payment requirements. Adjust your interest rate input to reflect typical jumbo pricing in your market.';
   } else {
     bench.textContent = 'Conventional: PMI may be removable once sufficient equity is reached.';
   }
@@ -1214,8 +1256,8 @@ function calculate() {
   $('dpReason').textContent = decision.reason;
   $('dpAction').textContent = decision.action;
 
-  // Time horizon
-  $('dpHorizon').textContent = decision.horizon;
+  // Time horizon — prefix with "Your move:" so the actionable recommendation reads clearly
+  $('dpHorizon').innerHTML = `<span class="dp-horizon-prefix">Your move:</span> <span class="dp-horizon-text">${decision.horizon}</span>`;
 
   // Confidence badge + explanation (F4)
   const confidence = calcConfidence(decision, breakEven, rateThreshold, priceThreshold, params);
@@ -1233,6 +1275,36 @@ function calculate() {
 
   // Decision plan metrics — wealthImpact comes from the SAME calcBuyVsRentWealth used by the panel
   const wi = decision.wealth5.wealthImpact;
+  // === TIPPING-POINT DIAL ===
+  // Needle angle ranges from -90° (full left = Rent strongly) to +90° (full right = Buy strongly).
+  // We use a softened log scale so $5K and $500K both register, but extremes don't clip.
+  (function renderTippingDial() {
+    const needle = $('tippingDialNeedle');
+    const cap = $('tippingDialCaption');
+    if (!needle || !cap) return;
+    const wi = decision.wealth5.wealthImpact;
+    const sign = wi >= 0 ? 1 : -1;
+    const absWi = Math.abs(wi);
+    // Log scale with $1K floor and $200K for full deflection
+    const SCALE_MAX = 200000;
+    const logFloor = Math.log10(1000);
+    const logMax = Math.log10(SCALE_MAX);
+    const logVal = Math.log10(Math.max(absWi, 1000));
+    const norm = Math.min(1, Math.max(0, (logVal - logFloor) / (logMax - logFloor)));
+    const angle = sign * norm * 90;
+    needle.setAttribute('transform', `rotate(${angle.toFixed(2)} 100 100)`);
+    // Caption
+    const absFmt = fmt(absWi);
+    let verdict, strength;
+    if (absWi < 3000) { strength = 'Dead-even tipping point'; }
+    else if (absWi < 15000) { strength = wi >= 0 ? 'Leans buy' : 'Leans rent'; }
+    else if (absWi < 60000) { strength = wi >= 0 ? 'Buy is favored' : 'Rent is favored'; }
+    else { strength = wi >= 0 ? 'Buy strongly wins' : 'Rent strongly wins'; }
+    verdict = `${strength} — ${wi >= 0 ? 'buy' : 'rent'} is ahead by ${absFmt} over ${timeHorizon} year${timeHorizon === 1 ? '' : 's'}`;
+    if (absWi < 3000) verdict = `Dead-even tipping point — the two paths are within ${absFmt} of each other over ${timeHorizon} year${timeHorizon === 1 ? '' : 's'}. Small input changes could flip the call.`;
+    cap.textContent = verdict;
+  })();
+
   $('dpMonthlyDiff').textContent = fmt(Math.abs(decision.monthlyDiff)) + '/mo';
   $('dpMonthlyDiff').className = 'dp-metric-value ' + (decision.monthlyDiff > 0 ? 'neg' : 'pos');
   $('dpAnnualDiff').textContent = fmt(Math.abs(decision.annualDiff)) + '/yr';
@@ -1275,7 +1347,11 @@ function calculate() {
   if (monthlyPMI > 0) {
     $('bdPMIRow').style.display = '';
     $('bdPMI').textContent = fmt(monthlyPMI);
-    if ($('bdPMILabel')) $('bdPMILabel').textContent = (loanType === 'FHA') ? 'FHA MIP' : 'PMI';
+    if ($('bdPMILabel')) {
+      $('bdPMILabel').textContent = (loanType === 'FHA') ? 'FHA MIP'
+        : (loanType === 'VA') ? 'VA MI'
+        : 'PMI';
+    }
   } else {
     $('bdPMIRow').style.display = 'none';
   }
@@ -1695,6 +1771,34 @@ function validateInputs() {
     else if (!isNaN(dpV) && dpV > 100) markInvalid(dpEl, 'Down Payment cannot exceed 100%.');
   }
 
+  // Interest rate upper bound (hard sanity cap)
+  const irEl = $('interestRate');
+  if (irEl) {
+    const irV = parseFloat(irEl.value);
+    if (!isNaN(irV) && irV > 20) markInvalid(irEl, 'Interest Rate above 20% is unrealistic — please double-check.');
+  }
+
+  // Loan term upper bound
+  const ltEl = $('loanTerm');
+  if (ltEl) {
+    const ltV = parseFloat(ltEl.value);
+    if (!isNaN(ltV) && ltV > 50) markInvalid(ltEl, 'Loan term above 50 years is not supported.');
+  }
+
+  // Affordability inputs: if entered (non-empty), must be positive
+  const aiEl = $('annualIncome');
+  if (aiEl && aiEl.value !== '' && aiEl.value != null) {
+    const aiV = parseFloat(aiEl.value);
+    if (isNaN(aiV) || aiV <= 0) markInvalid(aiEl, 'Annual Income must be greater than 0 (or leave blank).');
+    else clearInvalid(aiEl);
+  }
+  const mdEl = $('monthlyDebt');
+  if (mdEl && mdEl.value !== '' && mdEl.value != null) {
+    const mdV = parseFloat(mdEl.value);
+    if (isNaN(mdV) || mdV < 0) markInvalid(mdEl, 'Monthly Debt cannot be negative (or leave blank).');
+    else clearInvalid(mdEl);
+  }
+
   // Vacancy + expense ratio range
   const vacEl = $('vacancyPct');
   if (vacEl) {
@@ -1868,12 +1972,23 @@ function renderChartDataTable(params) {
   if (!body) return;
   const maxYr = Math.max(10, params.timeHorizon || 5);
   let html = '';
+  const snapshots = [];
   for (let yr = 0; yr <= maxYr; yr++) {
     const w = calcBuyVsRentWealth(params, yr);
     const diffClass = w.wealthImpact >= 0 ? 'pos' : 'neg';
     html += `<tr><td>${yr}</td><td>${fmt(w.buyNet)}</td><td>${fmt(w.rentNet)}</td><td class="${diffClass}">${fmtSigned(w.wealthImpact)}</td></tr>`;
+    snapshots.push(w);
   }
   body.innerHTML = html;
+  // Screen-reader summary of the chart (non-visual users can't see the canvas)
+  const sr = $('chartSrSummary');
+  if (sr) {
+    const y0 = snapshots[0], y5 = snapshots[5] || snapshots[snapshots.length-1], yEnd = snapshots[snapshots.length-1];
+    sr.textContent = `Wealth-over-time chart summary. ` +
+      `Buy net position starts at ${fmt(y0.buyNet)} in year 0, reaches ${fmt(y5.buyNet)} at year 5, and ${fmt(yEnd.buyNet)} at year ${maxYr}. ` +
+      `Rent net position starts at ${fmt(y0.rentNet)}, reaches ${fmt(y5.rentNet)} at year 5, and ${fmt(yEnd.rentNet)} at year ${maxYr}. ` +
+      `Wealth impact at year ${maxYr}: ${fmtSigned(yEnd.wealthImpact)}.`;
+  }
 }
 
 // ---------- METHODOLOGY PANEL ("How This Decision Is Calculated") ----------
@@ -1924,6 +2039,7 @@ function toggleChartDataTable() {
   const hidden = wrap.style.display === 'none' || wrap.style.display === '';
   wrap.style.display = hidden ? 'block' : 'none';
   btn.textContent = hidden ? 'Hide data table' : 'Show data table';
+  btn.setAttribute('aria-expanded', hidden ? 'true' : 'false');
 }
 
 // ---------- NARRATIVE BUILDER (F3) ----------
@@ -2317,6 +2433,48 @@ if (rateInput && rateSlider) {
     else updateHints();
   });
 }
+
+// ---------- FAQ HELP DRAWER ----------
+// Accessible side-panel with plain-English explainers. Trap Escape key for dismiss.
+function toggleFaqDrawer(force) {
+  const drawer = $('faqDrawer');
+  const backdrop = $('faqBackdrop');
+  const fab = $('faqFab');
+  if (!drawer || !backdrop || !fab) return;
+  const willOpen = (typeof force === 'boolean') ? force : drawer.hasAttribute('hidden');
+  if (willOpen) {
+    drawer.hidden = false;
+    backdrop.hidden = false;
+    // Next frame so the transition fires
+    requestAnimationFrame(() => {
+      drawer.classList.add('faq-open');
+      backdrop.classList.add('faq-open');
+    });
+    drawer.setAttribute('aria-hidden', 'false');
+    fab.setAttribute('aria-expanded', 'true');
+    const closeBtn = drawer.querySelector('.faq-drawer-close');
+    if (closeBtn) closeBtn.focus();
+  } else {
+    drawer.classList.remove('faq-open');
+    backdrop.classList.remove('faq-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    fab.setAttribute('aria-expanded', 'false');
+    // Hide after the CSS transition completes (~220ms)
+    setTimeout(() => {
+      if (!drawer.classList.contains('faq-open')) {
+        drawer.hidden = true;
+        backdrop.hidden = true;
+      }
+    }, 240);
+    fab.focus();
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const d = $('faqDrawer');
+    if (d && d.classList.contains('faq-open')) toggleFaqDrawer(false);
+  }
+});
 
 // ---------- INIT ----------
 populateStateDropdown();
