@@ -1607,6 +1607,103 @@ body.basic-mode .advanced-only { display: none !important; }
   text-decoration: underline;
 }
 
+/* Verify-failed banner (payment received, auto-verify exhausted all retries) */
+.verify-failed-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff5f5;
+  border: 2px solid #c53030;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  color: #742a2a;
+}
+.verify-failed-banner[hidden] { display: none !important; }
+.verify-failed-icon { font-size: 22px; flex-shrink: 0; line-height: 1.1; }
+.verify-failed-text { flex: 1; min-width: 0; }
+.verify-failed-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; color: #742a2a; }
+.verify-failed-sub { font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
+.verify-failed-sub a { color: #c53030; font-weight: 700; text-decoration: underline; }
+.verify-failed-sid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #4a2020;
+}
+.verify-failed-sid code {
+  background: #fff;
+  border: 1px solid #fed7d7;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  user-select: all;
+  word-break: break-all;
+}
+.verify-failed-copy, .verify-failed-retry {
+  background: #c53030;
+  color: #fff;
+  border: 0;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.verify-failed-copy:hover, .verify-failed-retry:hover { background: #9b2c2c; }
+.verify-failed-retry:disabled { background: #a0a0a0; cursor: not-allowed; }
+
+/* Recovery-link banner (shown once after first successful unlock) */
+.recovery-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fffbea;
+  border: 1.5px solid #d69e2e;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  color: #744210;
+}
+.recovery-banner[hidden] { display: none !important; }
+.recovery-icon { font-size: 20px; flex-shrink: 0; }
+.recovery-text { flex: 1; min-width: 0; }
+.recovery-title { font-weight: 800; font-size: 14px; margin-bottom: 2px; color: #744210; }
+.recovery-sub { font-size: 12.5px; line-height: 1.5; margin-bottom: 8px; }
+.recovery-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.recovery-link-input {
+  flex: 1;
+  min-width: 180px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 6px 8px;
+  border: 1px solid #e2c67a;
+  border-radius: 4px;
+  background: #fff;
+  color: #4a2e00;
+}
+.recovery-copy, .recovery-dismiss {
+  background: #b7791f;
+  color: #fff;
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.recovery-copy:hover, .recovery-dismiss:hover { background: #975a16; }
+.recovery-dismiss { background: transparent; color: #744210; border: 1px solid #d69e2e; }
+.recovery-dismiss:hover { background: #fef6dc; color: #744210; }
+
 /* Panel title sub-text (used by DTI panel) */
 .panel-title-sub {
   font-size: 12px;

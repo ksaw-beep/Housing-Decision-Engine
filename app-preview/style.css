@@ -1767,6 +1767,44 @@ body.preview-page {
   line-height: 1.5;
 }
 
+/* Reframe: monthly cost is the setup, not the answer */
+.pv-reframe {
+  margin: 16px 0 12px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #fffbea 0%, #fef6dc 100%);
+  border: 1.5px solid #d69e2e;
+  border-left: 5px solid #b7791f;
+  border-radius: 10px;
+  color: #4a2e00;
+  line-height: 1.55;
+}
+.pv-reframe-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  margin-bottom: 10px;
+  color: #744210;
+}
+.pv-reframe-icon { font-size: 20px; line-height: 1; }
+.pv-reframe p {
+  margin: 0 0 10px 0;
+  font-size: 13.5px;
+}
+.pv-reframe-bullets-intro {
+  font-weight: 700;
+  color: #744210;
+  margin-bottom: 6px !important;
+}
+.pv-reframe-bullets {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 13px;
+  color: #4a2e00;
+}
+.pv-reframe-bullets li { margin-bottom: 4px; }
+.pv-reframe-bullets li:last-child { margin-bottom: 0; }
+
 /* What's not included */
 .pv-missing-note {
   margin: 0;

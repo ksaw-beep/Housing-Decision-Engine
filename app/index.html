@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 
@@ -23,6 +23,37 @@
   <div class="preview-access-banner" id="previewBanner" hidden role="status">
     <span class="preview-access-icon" aria-hidden="true">🔒</span>
     <span>You're viewing the preview. <a href="https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00" class="preview-access-link">Unlock the full analysis — $19</a></span>
+  </div>
+
+  <!-- VERIFY-FAILED BANNER (shown when Stripe redirect arrives but verification retries all fail) -->
+  <div class="verify-failed-banner" id="verifyFailedBanner" hidden role="alert">
+    <span class="verify-failed-icon" aria-hidden="true">⚠️</span>
+    <div class="verify-failed-text">
+      <div class="verify-failed-title">Payment received — auto-verification failed</div>
+      <div class="verify-failed-sub">
+        We couldn't reach our verification service after several attempts, but your payment went through successfully.
+        Email <a href="mailto:homebuyerdecisionengine@gmail.com?subject=Manual%20unlock%20request&amp;body=Session%20ID%3A%20">homebuyerdecisionengine@gmail.com</a>
+        with the session ID below and we'll unlock your account manually (usually within a few hours).
+      </div>
+      <div class="verify-failed-sid">Session ID: <code id="verifyFailedSid">—</code>
+        <button type="button" class="verify-failed-copy" onclick="copyVerifySid()">Copy</button>
+        <button type="button" class="verify-failed-retry" onclick="retryVerification()">Retry now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECOVERY-LINK BANNER (shown once after first successful unlock) -->
+  <div class="recovery-banner" id="recoveryBanner" hidden role="status">
+    <span class="recovery-icon" aria-hidden="true">🔑</span>
+    <div class="recovery-text">
+      <div class="recovery-title">Save your access link</div>
+      <div class="recovery-sub">Bookmark this link or email it to yourself — it restores your full analysis on any device, even if you clear your browser.</div>
+      <div class="recovery-link-row">
+        <input type="text" id="recoveryLinkInput" class="recovery-link-input" readonly aria-label="Recovery link">
+        <button type="button" class="recovery-copy" onclick="copyRecoveryLink()">Copy link</button>
+        <button type="button" class="recovery-dismiss" aria-label="Dismiss" onclick="dismissRecoveryBanner()">Got it</button>
+      </div>
+    </div>
   </div>
 
   <!-- HEADER -->
@@ -957,6 +988,10 @@
         <summary>Is this financial advice?</summary>
         <p>No. This is a planning tool for educational purposes. It does not determine mortgage qualification and is not a substitute for a lender, financial advisor, or HUD-approved housing counselor. For binding numbers, get a Loan Estimate from at least 3 lenders.</p>
       </details>
+      <details>
+        <summary>How does the refund work?</summary>
+        <p>If the tool doesn&#x2019;t give you a clearer, more confident decision, email <a href="mailto:homebuyerdecisionengine@gmail.com?subject=Refund%20request">homebuyerdecisionengine@gmail.com</a> within 7 days of your purchase with a brief reason. We&#x2019;ll process a full refund through Stripe (usually within 1–2 business days). No friction — we&#x2019;d rather refund you than have you stuck with something you didn&#x2019;t find useful.</p>
+      </details>
     </div>
   </aside>
 
@@ -967,7 +1002,7 @@
 
 </div>
 
-<script src="script.js?v=12"></script>
+<script src="script.js?v=13"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)
@@ -988,6 +1023,7 @@
  */
 (function () {
   const STORAGE_KEY = 'hde_paid_session_v1';
+  const RECOVERY_SHOWN_KEY = 'hde_recovery_shown_v1';
 
   const params   = new URLSearchParams(window.location.search);
   const isPaid   = params.get('paid') === 'true';
@@ -995,32 +1031,30 @@
 
   const paidBanner    = document.getElementById('paidBanner');
   const previewBanner = document.getElementById('previewBanner');
-
-  // ── Early exit: access already granted out-of-band (e.g. ?dev=true) ──────
-  // script.js sets window.paidAccessVerified = true when ?dev=true is present.
-  // In that case the content is already unlocked — don't show either banner.
-  // (Real paid users go through Path A or B below, which DO show the paid banner.)
-  if (window.paidAccessVerified === true) {
-    if (paidBanner)    paidBanner.hidden = true;
-    if (previewBanner) previewBanner.hidden = true;
-    return;
-  }
+  const verifyFailedBanner = document.getElementById('verifyFailedBanner');
+  const recoveryBanner = document.getElementById('recoveryBanner');
 
   // ── localStorage helpers (wrapped for private-mode / disabled-storage safety) ──
-  function storageGet() {
-    try { return window.localStorage.getItem(STORAGE_KEY); }
+  function storageGet(key) {
+    try { return window.localStorage.getItem(key || STORAGE_KEY); }
     catch (_) { return null; }
   }
-  function storageSet(value) {
-    try { window.localStorage.setItem(STORAGE_KEY, value); }
+  function storageSet(value, key) {
+    try { window.localStorage.setItem(key || STORAGE_KEY, value); }
     catch (_) { /* private mode — silently skip */ }
   }
-  function storageClear() {
-    try { window.localStorage.removeItem(STORAGE_KEY); }
+  function storageClear(key) {
+    try { window.localStorage.removeItem(key || STORAGE_KEY); }
     catch (_) { /* ignore */ }
   }
 
-  function showPaidUnlocked(customerEmail) {
+  function hideAllBanners() {
+    if (paidBanner) paidBanner.hidden = true;
+    if (previewBanner) previewBanner.hidden = true;
+    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
+  }
+
+  function showPaidUnlocked(customerEmail, sessionIdForRecovery) {
     if (paidBanner) {
       paidBanner.hidden = false;
       if (customerEmail) {
@@ -1029,22 +1063,42 @@
       }
     }
     if (previewBanner) previewBanner.hidden = true;
+    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
     // Unlock paid content sections
     if (typeof unlockPaidAccess === 'function') unlockPaidAccess();
+    // Show recovery banner ONCE after first successful unlock
+    if (sessionIdForRecovery && recoveryBanner && !storageGet(RECOVERY_SHOWN_KEY)) {
+      const link = window.location.origin + '/app/?paid=true&session_id=' + encodeURIComponent(sessionIdForRecovery);
+      const linkInput = document.getElementById('recoveryLinkInput');
+      if (linkInput) linkInput.value = link;
+      recoveryBanner.hidden = false;
+      storageSet('1', RECOVERY_SHOWN_KEY);
+    }
   }
 
   function showPreviewMode(reason) {
     if (previewBanner) previewBanner.hidden = false;
     if (paidBanner) paidBanner.hidden = true;
+    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
     if (reason) console.info('[HDE] Preview mode:', reason);
   }
 
-  // ── Verify a session ID server-side ──────────────────────────────────────
-  // Returns a Promise resolving to { paid: boolean, customer: string|null, error?: string }
-  // Does NOT apply fallbacks — caller decides what to do on paid=false or error.
-  function verifySession(sid) {
+  function showVerifyFailed(sessionId) {
+    hideAllBanners();
+    if (verifyFailedBanner) {
+      verifyFailedBanner.hidden = false;
+      const sidEl = document.getElementById('verifyFailedSid');
+      if (sidEl) sidEl.textContent = sessionId;
+    }
+  }
+
+  // ── Verify a session ID server-side (single attempt) ─────────────────────
+  function verifySessionOnce(sid) {
     return fetch('/.netlify/functions/verify-session?session_id=' + encodeURIComponent(sid))
-      .then(function (res) { return res.json(); })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
       .then(function (data) {
         return {
           paid: !!(data && data.ok && data.paid),
@@ -1054,24 +1108,88 @@
       });
   }
 
+  // ── Verify with retry + exponential backoff ──────────────────────────────
+  // Retries on network/5xx errors only. A clean response saying paid=false is
+  // treated as an authoritative negative and NOT retried.
+  // Delays: 0ms (attempt 1), 600ms (attempt 2), 1800ms (attempt 3).
+  function verifySessionWithRetry(sid, maxAttempts) {
+    maxAttempts = maxAttempts || 3;
+    let attempt = 0;
+    function tryOnce() {
+      attempt++;
+      return verifySessionOnce(sid).catch(function (err) {
+        console.warn('[HDE] verify attempt ' + attempt + ' failed:', err && err.message);
+        if (attempt >= maxAttempts) throw err;
+        const delay = 600 * Math.pow(3, attempt - 1);
+        return new Promise(function (resolve) { setTimeout(resolve, delay); }).then(tryOnce);
+      });
+    }
+    return tryOnce();
+  }
+
+  // ── Expose helpers for banner buttons ────────────────────────────────────
+  window.copyVerifySid = function () {
+    const sid = (document.getElementById('verifyFailedSid') || {}).textContent || '';
+    if (!sid || sid === '—') return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(sid).catch(function () {});
+    }
+    const btn = document.querySelector('.verify-failed-copy');
+    if (btn) { const orig = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(function () { btn.textContent = orig; }, 1500); }
+  };
+  window.retryVerification = function () {
+    const sid = (document.getElementById('verifyFailedSid') || {}).textContent || '';
+    if (!sid || sid === '—') return;
+    const btn = document.querySelector('.verify-failed-retry');
+    if (btn) { btn.disabled = true; btn.textContent = 'Retrying…'; }
+    verifySessionWithRetry(sid, 3).then(function (result) {
+      if (result.paid) {
+        storageSet(sid);
+        showPaidUnlocked(result.customer, sid);
+      } else {
+        if (btn) { btn.disabled = false; btn.textContent = 'Retry now'; }
+      }
+    }).catch(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Retry now'; }
+    });
+  };
+  window.copyRecoveryLink = function () {
+    const input = document.getElementById('recoveryLinkInput');
+    if (!input) return;
+    input.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(input.value).catch(function () {});
+    } else {
+      try { document.execCommand('copy'); } catch (_) {}
+    }
+    const btn = document.querySelector('.recovery-copy');
+    if (btn) { const orig = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(function () { btn.textContent = orig; }, 1500); }
+  };
+  window.dismissRecoveryBanner = function () {
+    if (recoveryBanner) recoveryBanner.hidden = true;
+  };
+
   // ── PATH A: URL says ?paid=true&session_id=cs_xxx (Stripe success redirect) ──
   if (isPaid && urlSessionId && urlSessionId.startsWith('cs_')) {
-    verifySession(urlSessionId)
+    verifySessionWithRetry(urlSessionId, 3)
       .then(function (result) {
         if (result.paid) {
-          storageSet(urlSessionId);           // persist for future visits
-          showPaidUnlocked(result.customer);
+          storageSet(urlSessionId);
+          showPaidUnlocked(result.customer, urlSessionId);
         } else {
-          storageClear();
+          // Authoritative negative from Stripe — session exists but not paid.
+          // Don't clear storage here in case a valid prior session is stored.
           showPreviewMode('Stripe verification returned paid=false: ' + (result.error || 'unknown'));
         }
       })
       .catch(function (err) {
-        // User just completed Stripe checkout — a temporary network hiccup here
-        // shouldn't lock them out. Best-effort unlock + save so next visit re-verifies.
-        console.warn('[HDE] Session verification unavailable on Stripe return, fallback unlock:', err.message);
+        // All retries exhausted. Payment almost certainly succeeded (user just
+        // came from Stripe), but we can't confirm it. Store the session id so
+        // future loads can re-verify, and show the "manual unlock" banner with
+        // the session id visible so the user can email support.
+        console.warn('[HDE] All verification retries failed on Stripe return:', err && err.message);
         storageSet(urlSessionId);
-        showPaidUnlocked(null);
+        showVerifyFailed(urlSessionId);
       });
     return;
   }
@@ -1084,10 +1202,10 @@
   // ── PATH B: no valid URL token → check localStorage for a prior session ──
   const storedSessionId = storageGet();
   if (storedSessionId && storedSessionId.startsWith('cs_')) {
-    verifySession(storedSessionId)
+    verifySessionWithRetry(storedSessionId, 3)
       .then(function (result) {
         if (result.paid) {
-          showPaidUnlocked(result.customer);
+          showPaidUnlocked(result.customer, null); // don't re-show recovery banner on return visits
         } else {
           // Session no longer valid (shouldn't happen for paid sessions, but defensive)
           storageClear();
@@ -1095,10 +1213,9 @@
         }
       })
       .catch(function (err) {
-        // Network error on a stored session — do NOT auto-unlock. No recent
-        // payment event to justify the fallback. Keep the stored id so the
-        // next page load can retry; just show preview mode for now.
-        console.warn('[HDE] Stored-session verification unavailable:', err.message);
+        // All retries failed on a stored session. Keep the stored id so the
+        // next page load retries; show preview mode + a console note for now.
+        console.warn('[HDE] Stored-session verification unavailable after retries:', err && err.message);
         showPreviewMode('Verification unavailable — try reloading');
       });
     return;

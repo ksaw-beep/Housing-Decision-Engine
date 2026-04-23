@@ -4,11 +4,7 @@
 // paidAccessVerified is set to true by the inline gating script (bottom of
 // index.html) after successful Stripe session verification. Without it, the
 // app computes everything but only displays the free-tier sections.
-// Set ?dev=true in the URL to unlock locally during development.
-window.paidAccessVerified = (function() {
-  const p = new URLSearchParams(window.location.search);
-  return p.get('dev') === 'true';
-})();
+window.paidAccessVerified = false;
 
 function unlockPaidAccess() {
   window.paidAccessVerified = true;
