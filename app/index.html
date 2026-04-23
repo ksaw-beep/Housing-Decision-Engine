@@ -420,7 +420,7 @@
         <div class="analysis-status" id="analysisStatus" role="status" aria-live="polite" aria-atomic="true">
           <span class="analysis-status-icon" aria-hidden="true">✓</span>
           <span id="analysisStatusText">Analysis updated</span>
-          <button type="button" class="share-analysis-btn paid-only" id="shareAnalysisBtn" onclick="copyShareLink()" title="Copy a link to this analysis">
+          <button type="button" class="share-analysis-btn" id="shareAnalysisBtn" onclick="copyShareLink()" title="Copy a link to this analysis" hidden>
             <span aria-hidden="true">🔗</span> Share this analysis
           </button>
           <span class="share-analysis-toast" id="shareAnalysisToast" role="status" aria-live="polite" hidden>Link copied ✓</span>
@@ -1007,7 +1007,7 @@
 
 </div>
 
-<script src="script.js?v=15"></script>
+<script src="script.js?v=16"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)

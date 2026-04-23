@@ -1228,6 +1228,13 @@ function calculate() {
     rc.classList.add('access-locked');
   }
 
+  // Share button only available to paid users (share links replay inputs,
+  // and unpaid viewers would just hit the same paywall anyway).
+  const shareBtn = $('shareAnalysisBtn');
+  if (shareBtn) {
+    shareBtn.hidden = !window.paidAccessVerified;
+  }
+
   // === ANALYSIS STATUS BANNER (Phase 2) ===
   // Double-RAF ensures the browser has painted display:block before starting
   // the CSS opacity/transform transition (single RAF can fire before layout).
