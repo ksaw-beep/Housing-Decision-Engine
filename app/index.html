@@ -1002,7 +1002,7 @@
 
 </div>
 
-<script src="script.js?v=13"></script>
+<script src="script.js?v=14"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)
@@ -1033,6 +1033,17 @@
   const previewBanner = document.getElementById('previewBanner');
   const verifyFailedBanner = document.getElementById('verifyFailedBanner');
   const recoveryBanner = document.getElementById('recoveryBanner');
+
+  // ── Early exit: localhost dev bypass already unlocked access ─────────────
+  // script.js sets window.paidAccessVerified = true when ?dev=true is present
+  // AND the hostname is localhost/127.0.0.1/file://. The content is already
+  // unlocked — don't show any banners and skip Stripe verification.
+  if (window.paidAccessVerified === true) {
+    if (paidBanner) paidBanner.hidden = true;
+    if (previewBanner) previewBanner.hidden = true;
+    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
+    return;
+  }
 
   // ── localStorage helpers (wrapped for private-mode / disabled-storage safety) ──
   function storageGet(key) {

@@ -4,7 +4,21 @@
 // paidAccessVerified is set to true by the inline gating script (bottom of
 // index.html) after successful Stripe session verification. Without it, the
 // app computes everything but only displays the free-tier sections.
-window.paidAccessVerified = false;
+//
+// LOCALHOST DEV BYPASS: ?dev=true unlocks paid content ONLY when running
+// on localhost / 127.0.0.1 / file://. On any real domain (Netlify, custom
+// domain) this bypass is dead code and cannot trigger — safe to ship.
+window.paidAccessVerified = (function () {
+  try {
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '' /* file:// */;
+    if (!isLocal) return false;
+    const p = new URLSearchParams(window.location.search);
+    return p.get('dev') === 'true';
+  } catch (_) {
+    return false;
+  }
+})();
 
 function unlockPaidAccess() {
   window.paidAccessVerified = true;
