@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine — Should You Buy or Rent?</title>
 <meta name="description" content="Know whether buying this home will build your wealth or set you back. A decision engine for first-time homebuyers.">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 
@@ -314,52 +314,126 @@
     <p class="section-subtitle">Here&#x2019;s why monthly payment isn&#x2019;t the whole story. The same $400,000 home can look like a terrible deal <em>or</em> the right move — depending on which question you ask.</p>
 
     <div class="worked-grid">
-      <div class="worked-inputs-card">
-        <div class="worked-card-head">
-          <span class="worked-card-icon" aria-hidden="true">📋</span>
-          <h3 class="worked-card-title">The Scenario</h3>
+      <!-- ====== THE SCENARIO (stat tile grid) ====== -->
+      <aside class="worked-scenario">
+        <div class="worked-scenario-head">
+          <span class="worked-scenario-icon" aria-hidden="true">📋</span>
+          <div>
+            <div class="worked-scenario-eyebrow">The Scenario</div>
+            <div class="worked-scenario-title">A $400K home, decided two ways</div>
+          </div>
         </div>
-        <ul class="worked-inputs-list">
-          <li><span>Home price</span><strong>$400,000</strong></li>
-          <li><span>Down payment</span><strong>10% ($40,000)</strong></li>
-          <li><span>Interest rate</span><strong>6.75% / 30-yr</strong></li>
-          <li><span>Current rent</span><strong>$2,200 / month</strong></li>
-          <li><span>Planned time horizon</span><strong>7 years</strong></li>
-          <li><span>Home appreciation</span><strong>3% / year</strong></li>
-          <li><span>Investment return (rent path)</span><strong>7% / year</strong></li>
-        </ul>
-        <p class="worked-inputs-note">Defaults for property tax (1.2%), insurance ($1,800/yr), maintenance (1% of value), closing costs (3%), and exit costs (6%) are applied.</p>
-      </div>
+        <div class="worked-stat-grid">
+          <div class="worked-stat">
+            <div class="worked-stat-label">Home price</div>
+            <div class="worked-stat-value">$400,000</div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Down payment</div>
+            <div class="worked-stat-value">$40,000<span class="worked-stat-sub">10%</span></div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Interest rate</div>
+            <div class="worked-stat-value">6.75%<span class="worked-stat-sub">30-yr fixed</span></div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Current rent</div>
+            <div class="worked-stat-value">$2,200<span class="worked-stat-sub">per month</span></div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Time horizon</div>
+            <div class="worked-stat-value">7 years</div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Home appreciation</div>
+            <div class="worked-stat-value">3%<span class="worked-stat-sub">per year</span></div>
+          </div>
+          <div class="worked-stat worked-stat-span">
+            <div class="worked-stat-label">If renting, invest the $40K at</div>
+            <div class="worked-stat-value">7%<span class="worked-stat-sub">per year · historical S&amp;P average</span></div>
+          </div>
+        </div>
+        <p class="worked-scenario-note">Tax (1.2%), insurance ($1,800/yr), maintenance (1% of value), closing (3%), and exit costs (6%) use standard defaults.</p>
+      </aside>
 
+      <!-- ====== THE TWO ANSWERS ====== -->
       <div class="worked-answers">
-        <div class="worked-answer worked-answer-bad">
-          <div class="worked-answer-label">Question 1 — &ldquo;Is it cheaper per month?&rdquo;</div>
-          <div class="worked-answer-result">
-            <span class="worked-answer-value">Buying costs <strong>~$1,140 more</strong> every month</span>
+        <!-- Question 1 -->
+        <article class="worked-answer worked-answer-bad">
+          <header class="worked-answer-head">
+            <span class="worked-answer-badge">Q1</span>
+            <span class="worked-answer-question">&ldquo;Is it cheaper per month?&rdquo;</span>
+          </header>
+          <div class="worked-answer-hero">
+            <div class="worked-answer-delta worked-answer-delta-neg">
+              <span class="worked-answer-delta-sign">+</span>
+              <span class="worked-answer-delta-amt">$1,140</span>
+              <span class="worked-answer-delta-unit">/mo to own</span>
+            </div>
           </div>
-          <div class="worked-answer-detail">~$3,340/mo to own vs. $2,200/mo rent. A typical mortgage calculator stops here and most buyers walk away.</div>
-          <div class="worked-answer-verdict">Surface verdict: <strong>Rent.</strong></div>
+          <div class="worked-compare-bars" aria-label="Monthly cost: rent vs buy">
+            <div class="worked-compare-row">
+              <span class="worked-compare-label">Rent</span>
+              <div class="worked-compare-track"><div class="worked-compare-fill worked-compare-rent" style="width:65.9%"></div></div>
+              <span class="worked-compare-amt">$2,200</span>
+            </div>
+            <div class="worked-compare-row">
+              <span class="worked-compare-label">Own</span>
+              <div class="worked-compare-track"><div class="worked-compare-fill worked-compare-buy" style="width:100%"></div></div>
+              <span class="worked-compare-amt">$3,340</span>
+            </div>
+          </div>
+          <footer class="worked-answer-foot">
+            <span class="worked-verdict-pill worked-verdict-pill-neg">Surface verdict: Rent</span>
+            <span class="worked-answer-aside">A typical mortgage calculator stops here — and most buyers walk away.</span>
+          </footer>
+        </article>
+
+        <!-- The twist divider -->
+        <div class="worked-twist" aria-hidden="true">
+          <span class="worked-twist-line"></span>
+          <span class="worked-twist-label">
+            <span class="worked-twist-icon">↓</span>
+            <span>but ask the <em>right</em> question</span>
+          </span>
+          <span class="worked-twist-line"></span>
         </div>
 
-        <div class="worked-answer-divider" aria-hidden="true">
-          <span>but the full picture flips this</span>
-        </div>
-
-        <div class="worked-answer worked-answer-good">
-          <div class="worked-answer-label">Question 2 — &ldquo;Which path leaves me wealthier in 7 years?&rdquo;</div>
-          <div class="worked-answer-result">
-            <span class="worked-answer-value">Buying ends up <strong>~$18,000 ahead</strong></span>
+        <!-- Question 2 -->
+        <article class="worked-answer worked-answer-good">
+          <header class="worked-answer-head">
+            <span class="worked-answer-badge worked-answer-badge-good">Q2</span>
+            <span class="worked-answer-question">&ldquo;Which path leaves me wealthier in 7 years?&rdquo;</span>
+          </header>
+          <div class="worked-answer-hero">
+            <div class="worked-answer-delta worked-answer-delta-pos">
+              <span class="worked-answer-delta-sign">+</span>
+              <span class="worked-answer-delta-amt">$18,000</span>
+              <span class="worked-answer-delta-unit">ahead by year 7</span>
+            </div>
           </div>
-          <div class="worked-answer-detail">Equity built ($136K net of exit costs) + appreciation outpaces renting + investing the $40K down payment at 7%. Break-even hits around month 68.</div>
-          <div class="worked-answer-verdict">Full verdict: <strong>Buy — medium confidence.</strong> Close to the tipping point; a 1% rate increase or 10% price drop could flip it.</div>
-        </div>
+          <ul class="worked-why-list">
+            <li><span class="worked-why-icon" aria-hidden="true">🏗️</span><span><strong>$136K equity built</strong> (net of exit costs)</span></li>
+            <li><span class="worked-why-icon" aria-hidden="true">📈</span><span><strong>3% appreciation</strong> outpaces renting + investing the $40K at 7%</span></li>
+            <li><span class="worked-why-icon" aria-hidden="true">⏱️</span><span><strong>Break-even hits month 68</strong> — still inside a 7-year stay</span></li>
+          </ul>
+          <footer class="worked-answer-foot">
+            <span class="worked-verdict-pill worked-verdict-pill-pos">Full verdict: Buy — medium confidence</span>
+            <span class="worked-answer-aside">Close to the tipping point: a 1% rate hike or 10% price drop flips it.</span>
+          </footer>
+        </article>
       </div>
     </div>
 
-    <p class="worked-takeaway">
-      <strong>The point:</strong> monthly cost tells you one story, long-term wealth tells another. This tool runs both — and tells you <em>how close you are to the tipping point</em>, so you know whether the recommendation is a confident call or a genuine coin flip.
-    </p>
-    <p class="worked-disclaimer">Example numbers are illustrative. Your actual results depend on your inputs, which you can change to match your exact situation.</p>
+    <!-- ====== INSIGHT BANNER ====== -->
+    <div class="worked-insight">
+      <div class="worked-insight-icon" aria-hidden="true">💡</div>
+      <div class="worked-insight-body">
+        <div class="worked-insight-title">Monthly cost tells one story. Long-term wealth tells another.</div>
+        <p class="worked-insight-text">This tool runs both — and shows you <em>how close you are to the tipping point</em>, so you know whether the recommendation is a confident call or a genuine coin flip.</p>
+      </div>
+    </div>
+    <p class="worked-disclaimer">Example figures are illustrative. Your actual results depend on your inputs, which you can change to match your exact situation.</p>
   </div>
 </section>
 
