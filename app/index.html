@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -580,6 +580,7 @@
         <div class="panel comparison-panel">
           <h3 class="panel-title">Monthly Cost Comparison</h3>
           <p class="panel-context">A quick visual of what you'd pay each month under each option. Use this to sanity-check whether buying costs more or less than renting before factoring in equity and appreciation.</p>
+          <div class="monthly-delta-headline" id="monthlyDeltaHeadline" aria-live="polite"></div>
           <div class="bar-group">
             <div class="bar-row">
               <span class="bar-label">Rent</span>
@@ -1007,7 +1008,7 @@
 
 </div>
 
-<script src="script.js?v=16"></script>
+<script src="script.js?v=17"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)

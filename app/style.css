@@ -657,6 +657,22 @@ body {
 /* ===== BAR CHART ===== */
 .comparison-panel { margin-bottom: 16px; }
 
+.monthly-delta-headline {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  background: #f8fafc;
+  border-left: 4px solid #cbd5e1;
+  color: #1e293b;
+}
+.monthly-delta-headline.pos  { background: #ecfdf5; border-left-color: #10b981; color: #065f46; }
+.monthly-delta-headline.neg  { background: #fef2f2; border-left-color: #ef4444; color: #991b1b; }
+.monthly-delta-headline.even { background: #fefce8; border-left-color: #eab308; color: #713f12; }
+.monthly-delta-headline:empty { display: none; }
+
 .bar-group { margin-top: 16px; }
 .bar-row {
   display: flex;

@@ -1389,6 +1389,26 @@ function calculate() {
   $('barBuy').style.width = (totalOwnership / maxCost * 100) + '%';
   $('barBuyAmt').textContent = fmt(totalOwnership);
 
+  // Plain-English headline: the delta between the two bars, stated once.
+  // Prefer the house-hack figure when rental income offsets ownership cost.
+  const headline = $('monthlyDeltaHeadline');
+  if (headline) {
+    const effectiveBuy = rentalIncome > 0 ? netCost : totalOwnership;
+    const delta = effectiveBuy - rent;
+    const absDelta = Math.abs(delta);
+    const noun = rentalIncome > 0 ? 'Owning (after rental income)' : 'Owning';
+    if (absDelta < 25) {
+      headline.textContent = `${noun} and renting cost about the same each month (within ${fmt(absDelta)}).`;
+      headline.className = 'monthly-delta-headline even';
+    } else if (delta > 0) {
+      headline.textContent = `${noun} costs ${fmt(absDelta)}/mo more than renting.`;
+      headline.className = 'monthly-delta-headline neg';
+    } else {
+      headline.textContent = `${noun} costs ${fmt(absDelta)}/mo less than renting.`;
+      headline.className = 'monthly-delta-headline pos';
+    }
+  }
+
   if (rentalIncome > 0) {
     $('hackRow').style.display = '';
     $('barHack').style.width = Math.max(netCost / maxCost * 100, 2) + '%';
