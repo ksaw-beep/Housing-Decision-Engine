@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -111,7 +111,7 @@
               <input type="number" id="downPaymentPct" value="10" min="0" max="100" step="0.5">
             </div>
             <span class="input-hint" id="downPaymentAmt">$35,000</span>
-            <span class="input-bench loan-type-note" id="loanTypeNote" style="display:none;">⚠ With less than 20% down, you may benefit from an FHA loan. Switch to <strong>Advanced</strong> mode to compare loan types.</span>
+            <span class="input-bench loan-type-note" id="loanTypeNote" style="display:none;">⚠ With less than 20% down, FHA may save you money. Compare loan types below.</span>
           </div>
           <div class="input-group">
             <label for="interestRate">Interest Rate
@@ -212,7 +212,7 @@
           <span class="input-bench" id="pmiBench">Est. PMI: —</span>
           <span class="input-bench">Used to estimate PMI for planning purposes — not a lender quote.</span>
         </div>
-        <div class="input-group advanced-only">
+        <div class="input-group">
           <label for="loanType">Loan Type
             <span class="tip-wrap">
               <button type="button" class="tip-btn" aria-label="More info about Loan Type" aria-describedby="tip-loantype" title="Loan Type" onclick="tipToggle(this)">?</button>
@@ -420,6 +420,10 @@
         <div class="analysis-status" id="analysisStatus" role="status" aria-live="polite" aria-atomic="true">
           <span class="analysis-status-icon" aria-hidden="true">✓</span>
           <span id="analysisStatusText">Analysis updated</span>
+          <button type="button" class="share-analysis-btn paid-only" id="shareAnalysisBtn" onclick="copyShareLink()" title="Copy a link to this analysis">
+            <span aria-hidden="true">🔗</span> Share this analysis
+          </button>
+          <span class="share-analysis-toast" id="shareAnalysisToast" role="status" aria-live="polite" hidden>Link copied ✓</span>
         </div>
 
         <!-- Active scenario badge — shown when a saved scenario is being viewed -->
@@ -997,12 +1001,13 @@
 
   <footer class="footer">
     <p>Housing Decision Engine &mdash; For educational purposes. Not financial advice.</p>
+    <p class="footer-privacy-line">All calculations run in your browser. We never see, store, or transmit your inputs.</p>
     <p class="footer-contact">Contact: <a href="mailto:homebuyerdecisionengine@gmail.com">homebuyerdecisionengine@gmail.com</a></p>
   </footer>
 
 </div>
 
-<script src="script.js?v=14"></script>
+<script src="script.js?v=15"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)

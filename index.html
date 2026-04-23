@@ -13,11 +13,8 @@
 <section class="hero">
   <div class="container">
     <img src="assets/logo.png" alt="Housing Decision Engine" class="hero-logo">
-    <div class="hero-badge">Built using real-world financial modeling</div>
     <h1 class="hero-headline">Know if this home builds wealth — or quietly sets you back.</h1>
-    <p class="hero-sub">Free preview: a fast directional verdict. Full decision plan: cash to close, DTI reality check, loan-type mortgage insurance, break-even month, sensitivity thresholds, house-hack adjustments, and side-by-side scenarios.</p>
-    <p class="hero-support">Analyzes affordability, compares renting vs. buying, models long-term wealth, and shows exactly when buying starts paying off.</p>
-    <p class="hero-authority">Built by real financial analytics professionals</p>
+    <p class="hero-sub">Most calculators show monthly payment. This one models long-term wealth, break-even timing, and how close you are to the tipping point — so you can decide with data, not vibes.</p>
 
     <!-- Free vs Paid comparison -->
     <div class="free-vs-paid">
@@ -51,18 +48,17 @@
       <a href="app-preview/index.html" class="btn btn-secondary">Try the Free Preview</a>
     </div>
     <p class="hero-microcopy">Free preview shows the core monthly-cost comparison. Paid unlocks the recommendation, break-even month, and full wealth chart.</p>
-    <p class="hero-urgency">Most buyers make this decision in weeks — without ever running this analysis</p>
     <div class="hero-proof">
-      <div class="hero-proof-item">
-        <span class="proof-icon">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-        <span>Financial-grade analysis</span>
-      </div>
       <div class="hero-proof-item">
         <span class="proof-icon">&#8987;</span>
         <span>Results in under 60 seconds</span>
       </div>
       <div class="hero-proof-item">
         <span class="proof-icon">&#128274;</span>
+        <span>Your numbers never leave your browser</span>
+      </div>
+      <div class="hero-proof-item">
+        <span class="proof-icon">&#128100;</span>
         <span>No account required</span>
       </div>
     </div>
@@ -310,6 +306,63 @@
   </div>
 </section>
 
+<!-- ============ WORKED EXAMPLE ============ -->
+<section class="section worked-example-section" id="example">
+  <div class="container">
+    <div class="section-label">A Real Example</div>
+    <h2 class="section-title">Same Home, Two Questions, Two Different Answers</h2>
+    <p class="section-subtitle">Here&#x2019;s why monthly payment isn&#x2019;t the whole story. The same $400,000 home can look like a terrible deal <em>or</em> the right move — depending on which question you ask.</p>
+
+    <div class="worked-grid">
+      <div class="worked-inputs-card">
+        <div class="worked-card-head">
+          <span class="worked-card-icon" aria-hidden="true">📋</span>
+          <h3 class="worked-card-title">The Scenario</h3>
+        </div>
+        <ul class="worked-inputs-list">
+          <li><span>Home price</span><strong>$400,000</strong></li>
+          <li><span>Down payment</span><strong>10% ($40,000)</strong></li>
+          <li><span>Interest rate</span><strong>6.75% / 30-yr</strong></li>
+          <li><span>Current rent</span><strong>$2,200 / month</strong></li>
+          <li><span>Planned time horizon</span><strong>7 years</strong></li>
+          <li><span>Home appreciation</span><strong>3% / year</strong></li>
+          <li><span>Investment return (rent path)</span><strong>7% / year</strong></li>
+        </ul>
+        <p class="worked-inputs-note">Defaults for property tax (1.2%), insurance ($1,800/yr), maintenance (1% of value), closing costs (3%), and exit costs (6%) are applied.</p>
+      </div>
+
+      <div class="worked-answers">
+        <div class="worked-answer worked-answer-bad">
+          <div class="worked-answer-label">Question 1 — &ldquo;Is it cheaper per month?&rdquo;</div>
+          <div class="worked-answer-result">
+            <span class="worked-answer-value">Buying costs <strong>~$1,140 more</strong> every month</span>
+          </div>
+          <div class="worked-answer-detail">~$3,340/mo to own vs. $2,200/mo rent. A typical mortgage calculator stops here and most buyers walk away.</div>
+          <div class="worked-answer-verdict">Surface verdict: <strong>Rent.</strong></div>
+        </div>
+
+        <div class="worked-answer-divider" aria-hidden="true">
+          <span>but the full picture flips this</span>
+        </div>
+
+        <div class="worked-answer worked-answer-good">
+          <div class="worked-answer-label">Question 2 — &ldquo;Which path leaves me wealthier in 7 years?&rdquo;</div>
+          <div class="worked-answer-result">
+            <span class="worked-answer-value">Buying ends up <strong>~$18,000 ahead</strong></span>
+          </div>
+          <div class="worked-answer-detail">Equity built ($136K net of exit costs) + appreciation outpaces renting + investing the $40K down payment at 7%. Break-even hits around month 68.</div>
+          <div class="worked-answer-verdict">Full verdict: <strong>Buy — medium confidence.</strong> Close to the tipping point; a 1% rate increase or 10% price drop could flip it.</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="worked-takeaway">
+      <strong>The point:</strong> monthly cost tells you one story, long-term wealth tells another. This tool runs both — and tells you <em>how close you are to the tipping point</em>, so you know whether the recommendation is a confident call or a genuine coin flip.
+    </p>
+    <p class="worked-disclaimer">Example numbers are illustrative. Your actual results depend on your inputs, which you can change to match your exact situation.</p>
+  </div>
+</section>
+
 <!-- ============ VALUE ============ -->
 <section class="section value-section" id="pricing">
   <div class="container">
@@ -388,6 +441,7 @@
   <div class="container">
     <div class="footer-brand">Housing Decision Engine</div>
     <p class="footer-disclaimer">For educational purposes. Not financial advice. Consult a qualified financial advisor before making major financial decisions.</p>
+    <p class="footer-privacy">All calculations run in your browser. We never see, store, or transmit your inputs.</p>
     <p class="footer-contact">Contact: <a href="mailto:homebuyerdecisionengine@gmail.com">homebuyerdecisionengine@gmail.com</a></p>
   </div>
 </footer>

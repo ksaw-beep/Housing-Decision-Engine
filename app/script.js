@@ -2175,6 +2175,93 @@ function loadScenarioIntoInputs(scen) {
   validateMoveOut();
 }
 
+// ── Shareable-link encoding ─────────────────────────────────────────────────
+// Build a URL that captures the current form state in query params, so a
+// recipient opening the link sees the same analysis. No auth, no backend —
+// all inputs round-trip through the URL. Reserved params (paid, session_id,
+// dev) are preserved untouched.
+function buildShareLink() {
+  const params = new URLSearchParams();
+  params.set('share', '1');
+  SCENARIO_INPUT_MAP.forEach(([inputId, paramKey]) => {
+    const el = $(inputId);
+    if (!el) return;
+    const v = (el.value || '').toString().trim();
+    if (v === '') return;
+    params.set(paramKey, v);
+  });
+  const mo = $('moveOutYear');
+  if (mo && mo.value !== '' && mo.value != null) params.set('moveOutYear', mo.value);
+  const base = window.location.origin + window.location.pathname;
+  return base + '?' + params.toString();
+}
+
+function copyShareLink() {
+  const url = buildShareLink();
+  const toast = $('shareAnalysisToast');
+  const done = function () {
+    if (!toast) return;
+    toast.hidden = false;
+    setTimeout(function () { toast.hidden = true; }, 2200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(function () {
+      // Fallback: create a temporary textarea
+      copyViaTextarea(url); done();
+    });
+  } else {
+    copyViaTextarea(url); done();
+  }
+}
+
+function copyViaTextarea(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  } catch (_) { /* ignore */ }
+}
+
+// Read query params (?share=1&homePrice=...) on page load and prefill inputs
+// if present. Returns true if any share param was applied (caller may choose
+// to auto-run the analysis).
+function applyShareLinkParamsFromUrl() {
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    if (qs.get('share') !== '1') return false;
+    let applied = false;
+    SCENARIO_INPUT_MAP.forEach(([inputId, paramKey]) => {
+      const raw = qs.get(paramKey);
+      if (raw === null || raw === '') return;
+      const el = $(inputId);
+      if (!el) return;
+      el.value = raw;
+      applied = true;
+    });
+    const mo = qs.get('moveOutYear');
+    if (mo !== null && mo !== '' && $('moveOutYear')) {
+      $('moveOutYear').value = mo;
+      applied = true;
+    }
+    if (applied) {
+      // Sync interest rate slider + skip state-based tax prefill
+      const rate = qs.get('rate');
+      const rateSlider = $('interestRateSlider');
+      if (rateSlider && rate !== null) {
+        const v = parseFloat(rate);
+        if (!isNaN(v) && v >= 2 && v <= 12) rateSlider.value = v;
+      }
+      if (qs.get('taxPct') !== null) userEditedPropertyTax = true;
+    }
+    return applied;
+  } catch (_) { return false; }
+}
+
 // Click handler on the Save/Scenario buttons. Behaviors:
 //   - Slot empty OR active slot: run analysis with current inputs, then save/update.
 //   - Saved slot that is NOT active: restore its inputs + re-run its analysis.
@@ -2276,6 +2363,16 @@ function renderComparison() {
 }
 
 function resetForm() {
+  // Confirm before wiping user inputs — prevents accidental destruction of a
+  // mid-analysis scenario. Native confirm() is adequate; skipped if nothing
+  // has been meaningfully changed from defaults (no results computed yet).
+  const resultsVisible = $('resultsContent') && $('resultsContent').style.display !== 'none';
+  if (resultsVisible) {
+    const ok = window.confirm(
+      'Reset all inputs to defaults?\n\nYour current analysis, saved scenarios, and any changes you\u2019ve made will be cleared. This cannot be undone.'
+    );
+    if (!ok) return;
+  }
   $('homePrice').value = 350000;
   $('downPaymentPct').value = 10;
   $('closingCostsPct').value = 3;
@@ -2496,4 +2593,16 @@ try {
   setInputMode(savedMode === 'advanced' ? 'advanced' : 'basic');
 } catch (e) {
   setInputMode('basic');
+}
+
+// Apply shareable-link params if present (?share=1&homePrice=...). If any
+// share params were set, auto-run the analysis so the recipient lands on
+// results immediately. Share links ignore any stale state and re-populate
+// inputs from the URL.
+if (applyShareLinkParamsFromUrl()) {
+  updateHints();
+  // Defer calculate() so all initialization settles first
+  setTimeout(function () {
+    try { calculate(); } catch (err) { console.warn('[HDE] auto-calculate from share link failed:', err); }
+  }, 50);
 }
