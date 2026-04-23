@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine — Free Preview</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body class="preview-page">
 
@@ -212,28 +212,45 @@
         </div>
 
         <!-- Reframe: monthly cost is not the answer -->
-        <div class="pv-reframe" id="pvReframe">
-          <div class="pv-reframe-header">
+        <section class="pv-reframe" id="pvReframe" aria-labelledby="pvReframeTitle">
+          <header class="pv-reframe-header">
             <span class="pv-reframe-icon" aria-hidden="true">💡</span>
-            <strong>Monthly cost isn&#x2019;t the answer — it&#x2019;s the setup.</strong>
+            <div>
+              <h3 class="pv-reframe-title" id="pvReframeTitle">Monthly cost isn&#x2019;t the answer — it&#x2019;s the setup.</h3>
+              <p class="pv-reframe-sub">Over a 5-year horizon the same numbers can swing <strong>tens of thousands of dollars</strong> once you factor in equity, appreciation, exit costs, and what renters earn by investing the cash they don&#x2019;t tie up.</p>
+            </div>
+          </header>
+
+          <div class="pv-reframe-eyebrow">The full analysis answers what this preview can&#x2019;t</div>
+
+          <div class="pv-answer-grid">
+            <div class="pv-answer-card">
+              <div class="pv-answer-icon" aria-hidden="true">💰</div>
+              <div class="pv-answer-title">Which path leaves you wealthier</div>
+              <div class="pv-answer-sub">Buy, rent-and-invest, or house hack — measured at your actual time horizon.</div>
+            </div>
+            <div class="pv-answer-card">
+              <div class="pv-answer-icon" aria-hidden="true">⏱️</div>
+              <div class="pv-answer-title">When buying breaks even</div>
+              <div class="pv-answer-sub">Down to the month — or whether it ever does inside a 10-year window.</div>
+            </div>
+            <div class="pv-answer-card">
+              <div class="pv-answer-icon" aria-hidden="true">⚖️</div>
+              <div class="pv-answer-title">How close you are to the tipping point</div>
+              <div class="pv-answer-sub">What rate or price change would flip the recommendation.</div>
+            </div>
           </div>
-          <p id="pvReframeBody">
-            This bar chart compares what you&#x2019;d pay each month. It doesn&#x2019;t tell you whether buying
-            actually builds wealth faster than renting and investing the difference. Over a 5-year horizon,
-            the same scenario can swing <strong>tens of thousands of dollars</strong> in either direction once you
-            account for equity, appreciation, closing/exit costs, and investment returns on the cash you don&#x2019;t tie up.
-          </p>
-          <p class="pv-reframe-bullets-intro">The full analysis answers the question this preview can&#x2019;t:</p>
-          <ul class="pv-reframe-bullets">
-            <li><strong>Which path leaves you wealthier</strong> at your actual time horizon — buy, rent-and-invest, or house hack</li>
-            <li><strong>Exactly when buying breaks even</strong> (down to the month) — or whether it ever does within 10 years</li>
-            <li><strong>How close you are to the tipping point</strong> — and what rate or price change would flip the call</li>
-          </ul>
-        </div>
+        </section>
 
         <!-- What's not included -->
         <div class="pv-missing-note">
-          <strong>Also not in this preview:</strong> DTI affordability check, loan-type logic (FHA / VA / Jumbo), house-hack rental income modeling, and side-by-side scenario comparison.
+          <span class="pv-missing-label">Also locked in this preview</span>
+          <div class="pv-missing-tags">
+            <span class="pv-missing-tag">DTI affordability check</span>
+            <span class="pv-missing-tag">Loan types (FHA / VA / Jumbo)</span>
+            <span class="pv-missing-tag">House-hack rental modeling</span>
+            <span class="pv-missing-tag">Scenario A/B comparison</span>
+          </div>
         </div>
 
       </div><!-- /pvResults -->
