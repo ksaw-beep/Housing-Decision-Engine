@@ -1725,7 +1725,7 @@ function validateInputs() {
     ['rentalIncome', 'Rental Income cannot be negative.'],
     ['investReturn', 'Investment Return cannot be negative.'],
     ['closingCostsPct', 'Closing Costs cannot be negative.'],
-    ['sellingCostsPct', 'Selling Costs cannot be negative.'],
+    ['sellingCostsPct', 'Exit Costs at Sale cannot be negative.'],
     ['vacancyPct', 'Vacancy Rate cannot be negative.'],
     ['expenseRatioPct', 'Operating Costs cannot be negative.'],
   ];

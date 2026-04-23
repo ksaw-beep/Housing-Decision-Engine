@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -130,16 +130,16 @@
             <span class="input-bench">Typical range is 2–5% of home price.</span>
           </div>
           <div class="input-group">
-            <label for="sellingCostsPct">Selling Costs (% of home price)
+            <label for="sellingCostsPct">Exit Costs at Sale (% of sale price)
               <span class="tip-wrap">
-                <button type="button" class="tip-btn" aria-label="More info about Selling Costs" aria-describedby="tip-selling" title="Selling Costs" onclick="tipToggle(this)">?</button>
-                <span class="tip-content" role="tooltip" id="tip-selling">Costs deducted from your home's value when you sell — mainly agent commissions plus transaction fees. Typical range is 5–8%. Applied to the home's projected value at exit.</span>
+                <button type="button" class="tip-btn" aria-label="More info about Exit Costs at Sale" aria-describedby="tip-selling" title="Exit Costs at Sale" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-selling">Applied at the end of your time horizon to reflect the cost of converting the home back to cash — agent commissions, transfer/recording taxes, title/escrow seller fees. Without this, the buy side gets credit for equity you couldn&#x2019;t actually realize. Typical range: 5–8%. Set to 0% only if modeling a permanent hold.</span>
               </span>
             </label>
             <div class="input-wrap percent">
               <input type="number" id="sellingCostsPct" value="6" min="0" max="15" step="0.5">
             </div>
-            <span class="input-bench">Agent commissions + transaction costs. Typical: 5–8%.</span>
+            <span class="input-bench">Agent commissions + transfer taxes + title fees. Typical: 5–8%. Applied at end of time horizon.</span>
           </div>
         </div>
         <div class="input-row-2 advanced-only">
@@ -585,7 +585,7 @@
                   <span class="wealth-neg" id="wBuyClosing"></span>
                 </div>
                 <div class="wealth-line" id="wBuySellingRow" style="display:none;">
-                  <span>Selling costs at exit</span>
+                  <span>Exit costs at sale</span>
                   <span class="wealth-neg" id="wBuySelling"></span>
                 </div>
                 <div class="wealth-line">
@@ -874,7 +874,7 @@
             <li>Affordability / DTI check is informational only — it does NOT determine mortgage approval. Lenders evaluate income, credit, assets, loan type, and many other factors. DTI benchmarks: ≤ 36% generally stronger; 36–45% may still qualify depending on credit and reserves; &gt; 45% stretch territory — consult a lender</li>
             <li>Home appreciation and rent growth are estimates, not guarantees</li>
             <li>Maintenance estimated as a % of home value per year</li>
-            <li>Equity = down payment + principal paid + appreciation gain, minus selling costs (agent commissions + transaction fees, default 6%) applied to the projected home value at exit</li>
+            <li>Equity = down payment + principal paid + appreciation gain, minus <strong>exit costs at sale</strong> (agent commissions + transfer taxes + title/escrow fees, default 6%) applied to the projected home value at exit. This keeps the comparison apples-to-apples — the buy side only gets credit for equity you could actually realize by converting the home back to cash. On short horizons (&lt; 5 years) this is one of the most impactful assumptions; on very long horizons it has less influence</li>
             <li>Renter invests the full cash-to-close (down payment + closing costs) as a lump sum, plus monthly savings at the chosen return rate</li>
             <li>Break-even compares cumulative net wealth including investment returns</li>
             <li>Sensitivity analysis uses binary search to find thresholds — directionally accurate</li>
@@ -945,7 +945,8 @@
       </details>
       <details>
         <summary>What assumptions drive these numbers?</summary>
-        <p>The biggest levers are your <strong>interest rate</strong>, <strong>appreciation rate</strong>, <strong>investment return</strong>, <strong>time horizon</strong>, and <strong>rent growth</strong>. We also apply <strong>closing costs</strong> (default 3%) and <strong>selling costs at exit</strong> (default 6%).</p>
+        <p>The biggest levers are your <strong>interest rate</strong>, <strong>appreciation rate</strong>, <strong>investment return</strong>, <strong>time horizon</strong>, and <strong>rent growth</strong>. We also apply <strong>closing costs</strong> at purchase (default 3%) and <strong>exit costs at sale</strong> (default 6%).</p>
+        <p><strong>Why charge exit costs if you&#x2019;re not the one selling yet?</strong> Every buyer is a future seller. For the buy-vs-rent wealth comparison to be apples-to-apples, the buy side has to net out the cost of eventually converting the home back to cash (agent commissions, transfer taxes, title fees) — otherwise it gets credit for equity you couldn&#x2019;t actually realize. This matters most on short horizons; on 20+ year holds the impact is small.</p>
         <p>See the "Assumptions &amp; Notes" section at the bottom of the analysis for the full list. Every number is driven by your inputs — nothing is hardcoded.</p>
       </details>
       <details>
@@ -966,7 +967,7 @@
 
 </div>
 
-<script src="script.js?v=11"></script>
+<script src="script.js?v=12"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)
