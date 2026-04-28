@@ -7,7 +7,7 @@
 <meta name="description" content="Know whether buying this home will build your wealth or set you back. A decision engine for first-time homebuyers.">
 <link rel="icon" type="image/png" href="/assets/logo.png">
 <link rel="apple-touch-icon" href="/assets/logo.png">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
@@ -21,27 +21,63 @@
     <!-- Free vs Paid comparison -->
     <div class="free-vs-paid">
       <div class="fvp-col fvp-free">
-        <div class="fvp-label">Free Preview</div>
+        <div class="fvp-head">
+          <div class="fvp-head-row">
+            <div class="fvp-label">Free Preview</div>
+            <div class="fvp-price">$0</div>
+          </div>
+          <div class="fvp-head-sub">Get a directional read in 30 seconds</div>
+        </div>
         <ul class="fvp-list">
-          <li>Quick buy-vs-rent verdict (directional)</li>
-          <li>Monthly cost comparison</li>
-          <li>Estimated cash to close</li>
+          <li>
+            <span class="fvp-check fvp-check-free" aria-hidden="true">✓</span>
+            <div>
+              <div class="fvp-item-title">Quick buy-vs-rent verdict</div>
+              <div class="fvp-item-sub">Directional only — based on monthly cost</div>
+            </div>
+          </li>
+          <li>
+            <span class="fvp-check fvp-check-free" aria-hidden="true">✓</span>
+            <div>
+              <div class="fvp-item-title">Monthly cost comparison</div>
+              <div class="fvp-item-sub">Rent vs. PITI + maintenance + HOA</div>
+            </div>
+          </li>
+          <li>
+            <span class="fvp-check fvp-check-free" aria-hidden="true">✓</span>
+            <div>
+              <div class="fvp-item-title">Estimated cash to close</div>
+              <div class="fvp-item-sub">Down payment + ballpark closing costs</div>
+            </div>
+          </li>
         </ul>
+        <a href="app-preview/index.html" class="fvp-card-cta">Try it free <span aria-hidden="true">→</span></a>
+        <div class="fvp-foot-note">No signup. No payment. No catch.</div>
       </div>
-      <div class="fvp-divider" aria-hidden="true">vs</div>
+      <div class="fvp-divider" aria-hidden="true">
+        <span class="fvp-divider-label">vs</span>
+      </div>
       <div class="fvp-col fvp-paid">
-        <div class="fvp-label">Full Analysis — $19</div>
+        <div class="fvp-recommended-badge">★ Recommended</div>
+        <div class="fvp-head">
+          <div class="fvp-head-row">
+            <div class="fvp-label">Full Analysis</div>
+            <div class="fvp-price"><span class="fvp-price-amt">$19</span><span class="fvp-price-sub">one-time</span></div>
+          </div>
+          <div class="fvp-head-sub">The decision plan, with the math behind it</div>
+        </div>
         <ul class="fvp-list">
-          <li>✓ Recommendation + confidence level</li>
-          <li>✓ Break-even month (when buying pays off)</li>
-          <li>✓ 5–10 year wealth chart: Buy vs. Rent &amp; Invest</li>
-          <li>✓ DTI reality check</li>
-          <li>✓ Loan type &amp; mortgage insurance logic</li>
-          <li>✓ Interest rate &amp; home price sensitivity thresholds</li>
-          <li>✓ House-hack rental income adjustments</li>
-          <li>✓ Scenario A/B comparison</li>
-          <li>✓ Full methodology breakdown</li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">Recommendation + confidence level</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">Break-even month (when buying pays off)</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">5–10 year wealth chart: Buy vs. Rent &amp; Invest</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">DTI affordability reality check</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">Loan type &amp; mortgage insurance logic</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">Interest rate &amp; price sensitivity thresholds</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">House-hack rental income adjustments</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">Scenario A/B comparison + share links</div></div></li>
+          <li><span class="fvp-check" aria-hidden="true">✓</span><div><div class="fvp-item-title">Full methodology breakdown</div></div></li>
         </ul>
+        <div class="fvp-foot-note fvp-foot-note-paid">7-day refund · No subscription · No account</div>
       </div>
     </div>
 

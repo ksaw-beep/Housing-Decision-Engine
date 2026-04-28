@@ -1496,61 +1496,201 @@ body {
   align-items: stretch;
   gap: 0;
   margin: 28px auto 24px;
-  max-width: 660px;
-  border-radius: 14px;
+  max-width: 760px;
+  border-radius: 16px;
   overflow: hidden;
-  border: 2px solid var(--border, #ddd6cc);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+  border: 1px solid var(--border, #ddd6cc);
+  box-shadow: 0 6px 30px rgba(0,0,0,0.08);
   text-align: left;
 }
 .fvp-col {
   flex: 1;
-  padding: 20px 22px;
+  padding: 24px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 .fvp-free {
-  background: #f9f5f0;
+  background: linear-gradient(180deg, #fbf7f1 0%, #f5efe5 100%);
 }
 .fvp-paid {
-  background: #fff8ee;
-  border-left: 2px solid var(--gold, #8b1c2e);
+  background: linear-gradient(180deg, #fff9ef 0%, #fef3df 100%);
+  border-left: 1px solid var(--border, #ddd6cc);
 }
-.fvp-label {
-  font-size: 10.5px;
+.fvp-recommended-badge {
+  position: absolute;
+  top: -1px;
+  right: 16px;
+  background: var(--gold, #8b1c2e);
+  color: #fff;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 6px rgba(139, 28, 46, 0.25);
+}
+
+/* Card head */
+.fvp-head {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px dashed rgba(0,0,0,0.10);
+}
+.fvp-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.fvp-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   color: var(--muted, #7a6e65);
 }
 .fvp-paid .fvp-label {
   color: var(--gold, #8b1c2e);
 }
+.fvp-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: #2b2420;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.fvp-paid .fvp-price-amt {
+  color: var(--gold, #8b1c2e);
+  font-size: 26px;
+}
+.fvp-price-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #7a6e65);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fvp-head-sub {
+  font-size: 13px;
+  color: #5a4f46;
+  line-height: 1.4;
+}
+
+/* List */
 .fvp-list {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
-  line-height: 1.75;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.fvp-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.4;
   color: var(--text, #1a1410);
 }
-.fvp-paid .fvp-list {
-  color: var(--text, #1a1410);
-  font-weight: 500;
-}
-.fvp-divider {
+.fvp-check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--gold, #8b1c2e);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
+  margin-top: 1px;
+}
+.fvp-check-free {
+  background: #cbb98a;
+}
+.fvp-item-title {
+  font-weight: 600;
+  color: #2b2420;
+}
+.fvp-item-sub {
+  font-size: 12px;
+  color: var(--muted, #7a6e65);
+  margin-top: 1px;
+  line-height: 1.4;
+}
+
+/* Free-card mini CTA (fills the bottom space) */
+.fvp-card-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1.5px solid #cbb98a;
+  border-radius: 8px;
+  color: #6b5a32;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: center;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.fvp-card-cta:hover {
+  background: #fbf6e8;
+  border-color: #b89c4f;
+  transform: translateY(-1px);
+}
+.fvp-foot-note {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--muted, #7a6e65);
+  text-align: center;
+  font-style: italic;
+}
+.fvp-foot-note-paid {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(139, 28, 46, 0.18);
+  font-style: normal;
+  font-weight: 600;
+  color: #6b5a32;
+}
+
+/* Divider */
+.fvp-divider {
+  flex-shrink: 0;
+  width: 28px;
+  position: relative;
+  background: linear-gradient(180deg, #f0ebe4 0%, #e8e2db 100%);
+  border-left: 1px solid var(--border, #ddd6cc);
+  border-right: 1px solid var(--border, #ddd6cc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fvp-divider-label {
+  display: inline-block;
+  padding: 4px 0;
   font-size: 10px;
   font-weight: 800;
   color: var(--muted, #7a6e65);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  flex-shrink: 0;
-  background: #f0ebe4;
-  border-left: 1px solid var(--border, #ddd6cc);
-  border-right: 1px solid var(--border, #ddd6cc);
+  background: #fff;
+  width: 24px;
+  text-align: center;
+  border-radius: 999px;
+  border: 1px solid var(--border, #ddd6cc);
 }
 
 /* Hero microcopy below CTAs */
@@ -1561,14 +1701,16 @@ body {
   text-align: center;
 }
 
-@media (max-width: 600px) {
-  .free-vs-paid { flex-direction: column; }
+@media (max-width: 700px) {
+  .free-vs-paid { flex-direction: column; max-width: 480px; }
   .fvp-divider {
-    padding: 8px 16px;
+    width: auto;
+    height: 36px;
     border-left: none;
     border-right: none;
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
-  .fvp-paid { border-left: none; border-top: 2px solid var(--gold, #8b1c2e); }
+  .fvp-paid { border-left: none; }
+  .fvp-recommended-badge { right: 50%; transform: translateX(50%); border-radius: 0 0 8px 8px; }
 }
