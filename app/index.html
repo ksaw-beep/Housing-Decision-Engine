@@ -6,7 +6,7 @@
 <title>Housing Decision Engine</title>
 <link rel="icon" type="image/png" href="../assets/logo.png">
 <link rel="apple-touch-icon" href="../assets/logo.png">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 
@@ -396,6 +396,7 @@
       <div class="form-errors" id="formErrors" role="alert" aria-atomic="true" aria-live="assertive" style="display:none;"></div>
 
       <button class="btn-calculate" onclick="calculate()">Analyze My Options</button>
+      <p class="btn-calculate-hint"><span aria-hidden="true">⏱️</span> Most people finish in under 60 seconds.</p>
 
       <div class="scenario-controls">
         <div class="scen-slot">
@@ -1007,7 +1008,11 @@
   <footer class="footer">
     <p>Housing Decision Engine &mdash; For educational purposes. Not financial advice.</p>
     <p class="footer-privacy-line">All calculations run in your browser. We never see, store, or transmit your inputs.</p>
-    <p class="footer-contact">Contact: <a href="mailto:homebuyerdecisionengine@gmail.com">homebuyerdecisionengine@gmail.com</a></p>
+    <p class="footer-contact">
+      <a href="../">&larr; Back to home</a>
+      <span class="footer-sep" aria-hidden="true">·</span>
+      Contact: <a href="mailto:homebuyerdecisionengine@gmail.com">homebuyerdecisionengine@gmail.com</a>
+    </p>
   </footer>
 
 </div>
