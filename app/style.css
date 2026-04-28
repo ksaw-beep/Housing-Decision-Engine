@@ -1040,6 +1040,63 @@ body {
   line-height: 1.5;
 }
 
+/* Long-horizon reversal callout */
+.be-reversal {
+  margin-top: 18px;
+  padding: 18px 20px 16px;
+  background: linear-gradient(135deg, #fdf5e6 0%, #faedd0 100%);
+  border: 1px solid #d4a34e;
+  border-left: 4px solid #b7791f;
+  border-radius: 12px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  box-shadow: 0 2px 10px rgba(183, 121, 31, 0.08);
+}
+.be-reversal-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.be-reversal-content {
+  flex: 1;
+  min-width: 0;
+}
+.be-reversal-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b5a17;
+  margin-bottom: 4px;
+}
+.be-reversal-headline {
+  font-size: 15px;
+  font-weight: 800;
+  color: #5a3a0a;
+  line-height: 1.35;
+  margin-bottom: 8px;
+}
+.be-reversal-body {
+  font-size: 13.5px;
+  color: #4a3618;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.be-reversal-action {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #2b2420;
+  line-height: 1.55;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(183, 121, 31, 0.35);
+}
+@media (max-width: 560px) {
+  .be-reversal { padding: 16px; flex-direction: column; gap: 8px; }
+  .be-reversal-icon { font-size: 22px; }
+}
+
 .be-snapshot {
   width: 100%;
   border-collapse: collapse;

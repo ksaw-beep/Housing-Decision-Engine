@@ -538,6 +538,70 @@ function findBreakEven(params) {
   return { month: mo, year: years, found: true };
 }
 
+// ---------- LONG-HORIZON REVERSAL ANALYSIS ----------
+// In some scenarios (notably house-hack with move-out, long horizons, and
+// modest appreciation), the buy advantage CROSSES POSITIVE around the
+// break-even point, peaks somewhere mid-horizon, then crosses NEGATIVE again
+// before the user's horizon ends — because the renter's investment portfolio
+// (compounding at 7%) eventually outpaces home appreciation (typically 3%).
+//
+// This function detects that "double crossover" and returns the peak-advantage
+// month + the month when buy falls back behind rent. The Decision Plan and
+// Break-Even panel can use this to surface a "wealth-maximizing sell window"
+// callout, so the user understands that buying-then-holding-forever isn't
+// always the optimal play.
+//
+// Returns { hasReversal: false } when buy stays ahead through horizon, or
+// when buy never overtakes rent in the first place. Otherwise returns
+// detailed reversal info.
+function findReversal(params) {
+  const horizonYears = Math.max(1, params.timeHorizon || 5);
+  // Scan up to the user's horizon, capped at 30 years for compute safety.
+  const scanMonths = Math.min(360, Math.round(horizonYears * 12));
+  if (scanMonths < 24) return { hasReversal: false }; // too short to be meaningful
+
+  let peakMonth = 0;
+  let peakImpact = -Infinity;
+  let lastPositiveMonth = 0;
+  let firstPositiveMonth = 0;
+
+  for (let mo = 1; mo <= scanMonths; mo++) {
+    const w = calcBuyVsRentWealth(params, mo / 12);
+    if (w.wealthImpact > peakImpact) {
+      peakImpact = w.wealthImpact;
+      peakMonth = mo;
+    }
+    if (w.wealthImpact >= 0) {
+      lastPositiveMonth = mo;
+      if (firstPositiveMonth === 0) firstPositiveMonth = mo;
+    }
+  }
+
+  const finalW = calcBuyVsRentWealth(params, scanMonths / 12);
+
+  // Reversal only meaningful if buy actually went ahead AND ended behind.
+  const hasReversal =
+    peakImpact > 0 &&
+    finalW.wealthImpact < 0 &&
+    lastPositiveMonth > 0 &&
+    lastPositiveMonth < scanMonths;
+
+  if (!hasReversal) return { hasReversal: false };
+
+  return {
+    hasReversal: true,
+    firstCrossMonth: firstPositiveMonth,
+    firstCrossYear: Math.round((firstPositiveMonth / 12) * 10) / 10,
+    peakMonth,
+    peakYear: Math.round((peakMonth / 12) * 10) / 10,
+    peakImpact,
+    reversalMonth: lastPositiveMonth + 1,
+    reversalYear: Math.round(((lastPositiveMonth + 1) / 12) * 10) / 10,
+    finalImpact: finalW.wealthImpact,
+    finalYear: scanMonths / 12
+  };
+}
+
 // Format break-even for display: "Month 9 (~0.8 years)" or "Month 38 (~3.2 years)"
 function fmtBreakEven(be) {
   if (!be.found) return '';
@@ -1231,6 +1295,7 @@ function calculate() {
 
   // Advanced analyses
   const breakEven = findBreakEven(params);
+  const reversal = findReversal(params);
   const rateThreshold = findRateThreshold(params);
   const priceThreshold = findPriceThreshold(params);
   const decision = generateDecision(params, totalOwnership, netCost, equityHorizon, breakEven);
@@ -1597,6 +1662,33 @@ function calculate() {
     transInsight.textContent = `After year ${moveOutYear}, this property transitions to a full rental (~${fmt(postRental)}/mo income), improving cash flow and long-term returns.`;
   } else {
     transInsight.style.display = 'none';
+  }
+
+  // Long-horizon REVERSAL callout — buying overtakes rent, peaks, then falls
+  // back behind because the renter's investment portfolio compounds faster
+  // than home appreciation. Only shown when this actually happens within the
+  // user's horizon — otherwise hidden.
+  const reversalEl = $('beReversal');
+  if (reversalEl) {
+    if (reversal.hasReversal) {
+      reversalEl.style.display = '';
+      const sellWindowStart = Math.max(1, Math.floor(reversal.peakYear));
+      const sellWindowEnd = Math.max(sellWindowStart, Math.ceil(reversal.reversalYear) - 1);
+      const finalDirection = reversal.finalImpact < 0
+        ? `rent is ahead by ~${fmt(-reversal.finalImpact)}`
+        : `buy is ahead by ~${fmt(reversal.finalImpact)}`;
+      $('beReversalHeadline').textContent =
+        `Buying's lead peaks around year ${reversal.peakYear} at ~${fmt(reversal.peakImpact)}, then reverses.`;
+      $('beReversalBody').textContent =
+        `After year ${reversal.reversalYear}, the renter's compounding investment portfolio (at ${invReturn}%/yr) overtakes home appreciation (at ${appreciationPct}%/yr). ` +
+        `By year ${Math.round(reversal.finalYear)}, ${finalDirection}.`;
+      $('beReversalAction').textContent =
+        sellWindowEnd > sellWindowStart
+          ? `If you have flexibility on when to sell, your wealth-maximizing window is roughly years ${sellWindowStart}–${sellWindowEnd}. After that, the renter-and-invest path catches back up.`
+          : `Your wealth-maximizing point is around year ${sellWindowStart}. Holding longer than that hands the lead back to renting and investing.`;
+    } else {
+      reversalEl.style.display = 'none';
+    }
   }
 
   // === SENSITIVITY ANALYSIS ===

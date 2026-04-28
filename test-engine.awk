@@ -257,6 +257,41 @@ function decision(homePrice, downPct, rate, term, taxPct, insAnnual, maintPct, h
   d_monDiff = monDiff
 }
 
+# ---- REVERSAL DETECTION (mirrors findReversal in app/script.js) ----
+function checkReversal(label, homePrice, downPct, rate, term, taxPct, insAnnual, maintPct, hoa,
+                       rent, rentGrow, apprPct, rentalIncome, profile, loanType,
+                       ccPct, scPct, invReturn, moveOut, vacPct, expPct, horizon,
+                       scanMonths, mo, peakMo, peakImp, lastPos, firstPos, finalImp, hasRev) {
+  scanMonths = horizon * 12
+  if (scanMonths > 360) scanMonths = 360
+  if (scanMonths < 24) {
+    printf "%-50s %-10s %-10s %-12s\n", label, "n/a", "n/a", "(short hzn)"
+    return
+  }
+  peakMo = 0; peakImp = -1e15; lastPos = 0; firstPos = 0
+  for (mo = 1; mo <= scanMonths; mo++) {
+    calcBuyVsRentWealth(homePrice, downPct, rate, term, taxPct, insAnnual, maintPct, hoa,
+                        rent, rentGrow, apprPct, rentalIncome, profile, loanType,
+                        ccPct, scPct, invReturn, moveOut, vacPct, expPct, mo/12)
+    if (out_wealthImpact > peakImp) { peakImp = out_wealthImpact; peakMo = mo }
+    if (out_wealthImpact >= 0) {
+      lastPos = mo
+      if (firstPos == 0) firstPos = mo
+    }
+  }
+  finalImp = out_wealthImpact
+  hasRev = (peakImp > 0 && finalImp < 0 && lastPos > 0 && lastPos < scanMonths)
+  if (hasRev) {
+    printf "%-50s yr %-7.1f yr %-7.1f reversal yr %.1f (peak %s, final %s)\n",
+      label, firstPos/12, peakMo/12, (lastPos+1)/12, fmtSigned(peakImp), fmtSigned(finalImp)
+  } else {
+    printf "%-50s %-10s %-10s %-12s\n", label,
+      (firstPos > 0 ? sprintf("yr %.1f", firstPos/12) : "—"),
+      (peakImp > 0 ? sprintf("yr %.1f", peakMo/12) : "—"),
+      "no reversal"
+  }
+}
+
 function runScenario(label, narrative, expected,
                      homePrice, downPct, rate, term, taxPct, insAnnual, maintPct, hoa,
                      rent, rentGrow, apprPct, rentalIncome, profile, loanType,
@@ -402,4 +437,42 @@ BEGIN {
   print "================================================================================"
   print "Done. 12 scenarios run."
   print "================================================================================"
+
+  # ---- REVERSAL DETECTION SANITY CHECK ----
+  # Run findReversal-like logic on all 12 scenarios above + the user scenario.
+  # Expect: no reversal triggers in the 12 standard scenarios. User scenario
+  # should trigger with peak around year 14, reversal around year 20.
+  print ""
+  print "Reversal-detection sanity check (no reversal expected in scenarios 1-12):"
+  print ""
+  printf "%-50s %-10s %-10s %-12s\n", "Scenario", "First+", "Peak", "Reversal"
+  print "----------------------------------------------------------------------------------"
+
+  checkReversal("#1 cheap+expensive (BUY-CLEAR)", 250000, 20, 6.5, 30, 1.2, 1500, 1, 0, 2800, 3, 3, 0, "740-759", "Conventional", 3, 6, 7, 0, 5, 25, 7)
+  checkReversal("#2 expensive+cheap (RENT-FIRM)", 600000, 10, 7.0, 30, 1.2, 2000, 1, 0, 2200, 3, 3, 0, "740-759", "Conventional", 3, 6, 7, 0, 5, 25, 5)
+  checkReversal("#3 docx (3% appr, 7y) RENT-FIRM", 400000, 10, 6.75, 30, 1.2, 1800, 1, 0, 2200, 3, 3, 0, "740-759", "Conventional", 3, 6, 7, 0, 5, 25, 7)
+  checkReversal("#10 (5% appr, 7y) BUY-MEDIUM", 400000, 10, 6.75, 30, 1.2, 1800, 1, 0, 2200, 3, 5, 0, "740-759", "Conventional", 3, 6, 7, 0, 5, 25, 7)
+  checkReversal("#12 parity (BUY-MARGIN)", 300000, 20, 6.0, 30, 1.2, 1500, 1, 0, 2100, 3, 3, 0, "740-759", "Conventional", 3, 6, 7, 0, 5, 25, 7)
+  checkReversal("#5 hack 7y (HACK)", 500000, 20, 7.0, 30, 1.2, 2400, 1, 0, 2400, 3, 3, 2500, "740-759", "Conventional", 3, 6, 7, 0, 5, 25, 7)
+
+  print ""
+  print "User scenario (expect reversal):"
+  checkReversal("USER: $710K hack, moveOut yr2, 25y", 710000, 10, 7.0, 30, 1.2, 1800, 1, 0, 2200, 3, 3, 2600, "740-759", "Conventional", 3, 6, 7, 2, 5, 25, 25)
+
+  # ---- USER SCENARIO: $710K house hack, move out year 2, 25y horizon ----
+  print ""
+  print "================================================================================"
+  print "USER SCENARIO: $710K house hack with move-out at year 2, 25y horizon"
+  print "================================================================================"
+  print ""
+  print "Year-by-year wealth trajectory (Buy net vs Rent net):"
+  print ""
+  printf "%-6s %14s %14s %14s\n", "Year", "Buy Net", "Rent Net", "Δ (Buy-Rent)"
+  print "-------------------------------------------------------"
+  for (y = 1; y <= 25; y++) {
+    calcBuyVsRentWealth(710000, 10, 7, 30, 1.2, 1800, 1, 0,
+                        2200, 3, 3, 2600, "740-759", "Conventional",
+                        3, 6, 7, 2, 5, 25, y)
+    printf "%-6d %14s %14s %14s\n", y, fmt(out_buyNet), fmt(out_rentNet), fmtSigned(out_wealthImpact)
+  }
 }

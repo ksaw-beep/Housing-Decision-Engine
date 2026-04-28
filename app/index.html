@@ -6,7 +6,7 @@
 <title>Housing Decision Engine</title>
 <link rel="icon" type="image/png" href="../assets/logo.png">
 <link rel="apple-touch-icon" href="../assets/logo.png">
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 
@@ -757,6 +757,18 @@
                 </tr>
               </tbody>
             </table>
+
+            <!-- Long-horizon reversal callout — only shown when buying overtakes -->
+            <!-- rent, peaks, then falls back behind within the user's horizon. -->
+            <div class="be-reversal" id="beReversal" style="display:none;" role="region" aria-label="Long-horizon reversal">
+              <div class="be-reversal-icon" aria-hidden="true">↩️</div>
+              <div class="be-reversal-content">
+                <div class="be-reversal-eyebrow">Long-horizon reversal detected</div>
+                <div class="be-reversal-headline" id="beReversalHeadline"></div>
+                <div class="be-reversal-body" id="beReversalBody"></div>
+                <div class="be-reversal-action" id="beReversalAction"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1017,7 +1029,7 @@
 
 </div>
 
-<script src="script.js?v=18"></script>
+<script src="script.js?v=19"></script>
 <script>
 /**
  * PAID ACCESS GATING (Phase 5)
