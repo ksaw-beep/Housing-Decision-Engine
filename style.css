@@ -693,6 +693,89 @@ body {
   line-height: 1.6;
 }
 
+/* ===== FAQ ===== */
+
+.faq-section {
+  background: #fdfbf7;
+  border-top: 1px solid #efe8de;
+}
+.faq-list {
+  max-width: 760px;
+  margin: 32px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.faq-item {
+  background: #fff;
+  border: 1px solid #e8dec7;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(50, 35, 10, 0.04);
+  overflow: hidden;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.faq-item[open] {
+  border-color: #d4a34e;
+  box-shadow: 0 4px 14px rgba(183, 121, 31, 0.10);
+}
+.faq-q {
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2b2420;
+  line-height: 1.4;
+  user-select: none;
+  transition: background .15s ease;
+}
+.faq-q::-webkit-details-marker { display: none; }
+.faq-q:hover { background: #fdf9f0; }
+.faq-q-text { flex: 1; }
+.faq-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fbf2dd;
+  color: #b7791f;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .25s ease, background .15s ease;
+}
+.faq-item[open] .faq-icon {
+  transform: rotate(45deg);
+  background: #b7791f;
+  color: #fff;
+}
+.faq-a {
+  padding: 0 22px 20px;
+  color: #4a4036;
+  font-size: 15px;
+  line-height: 1.65;
+  border-top: 1px dashed #efe8de;
+  margin-top: 0;
+  padding-top: 16px;
+}
+.faq-a p { margin: 0; }
+.faq-a p + p { margin-top: 10px; }
+.faq-a a { color: #b7791f; font-weight: 600; }
+.faq-a a:hover { text-decoration: underline; }
+.faq-a strong { color: #2b2420; }
+.faq-a em { color: #5a4f46; font-style: italic; }
+@media (max-width: 560px) {
+  .faq-q { font-size: 15px; padding: 16px 18px; }
+  .faq-a { padding: 14px 18px 18px; font-size: 14.5px; }
+}
+
 /* ===== FINAL CTA ===== */
 
 .final-cta-section {

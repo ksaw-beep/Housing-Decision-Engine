@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Housing Decision Engine — Free Preview</title>
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="icon" type="image/png" href="../assets/logo.png">
+<link rel="apple-touch-icon" href="../assets/logo.png">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body class="preview-page">
 
@@ -12,7 +14,9 @@
 
   <!-- HEADER -->
   <header class="header">
-    <img src="../assets/logo.png" alt="Housing Decision Engine" class="header-logo">
+    <a href="../" class="header-logo-link" aria-label="Housing Decision Engine — home">
+      <img src="../assets/logo.png" alt="Housing Decision Engine" class="header-logo">
+    </a>
     <div class="header-left">
       <h1>Free Preview — Monthly Cost Estimate</h1>
       <p class="subtitle">Enter your details to see a real monthly cost breakdown.</p>
@@ -266,25 +270,21 @@
     <div class="upgrade-text">
       <strong class="upgrade-title">Unlock your full decision plan</strong>
       <ul class="upgrade-bullets">
-        <li>Recommendation + confidence level (Buy / Rent / House Hack)</li>
-        <li>Break-even month — when buying starts paying off</li>
-        <li>5–10 year wealth chart: Buy vs. Rent &amp; Invest</li>
-        <li>Interest rate &amp; home price sensitivity thresholds</li>
-        <li>Scenario A/B comparison</li>
+        <li>Personalized Buy / Rent / House Hack recommendation with confidence rating</li>
+        <li>Break-even month + 5–10 year wealth chart (Buy vs. Rent &amp; Invest)</li>
+        <li>Sensitivity thresholds: how far rates or prices can move before the answer flips</li>
       </ul>
       <button type="button" class="upgrade-what-link" id="upgradeWhatBtn"
               aria-expanded="false" aria-controls="upgradeDetails"
-              onclick="toggleUpgradeDetails()">What's included? ▾</button>
+              onclick="toggleUpgradeDetails()">See everything else included ▾</button>
       <div id="upgradeDetails" hidden class="upgrade-details">
-        <p>The full paid analysis adds:</p>
+        <p>The full paid analysis also includes:</p>
         <ul>
-          <li>Personalized recommendation with confidence rating</li>
-          <li>Exact break-even month on total wealth (not just monthly cost)</li>
-          <li>Interactive year-by-year wealth chart + data table</li>
-          <li>Rate &amp; price sensitivity thresholds</li>
-          <li>DTI affordability check</li>
-          <li>Side-by-side Scenario A vs. B comparison</li>
+          <li>DTI affordability check against your income &amp; debts</li>
+          <li>Loan-type logic (Conventional, FHA, VA, Jumbo) with auto-PMI / MIP</li>
           <li>House-hack / multi-family rental income modeling</li>
+          <li>Side-by-side Scenario A vs. B comparison with sharable links</li>
+          <li>Year-by-year wealth data table + interactive chart</li>
           <li>Full methodology panel so you can audit every number</li>
         </ul>
       </div>
