@@ -763,8 +763,22 @@ function generateDecision(params, totalOwnership, netCost, equityHorizon, breakE
       `(2) Target properties at or below ${fmt(homePrice)}. ` +
       `(3) Build up ${fmt(Math.round(totalOwnership * 4))} in emergency reserves (3-6 months of housing expenses) before closing. ` +
       `The numbers clearly support buying at these terms.`;
+  } else if (totalOwnership < rent && wealth5.wealthImpact < -10000) {
+    // Edge: monthly is cheaper, but the cash you'd tie up earns more invested
+    // (typical of high down payment in a low-appreciation market). Don't quietly
+    // tell the user "Buy" — the Wealth panel would directly contradict it.
+    type = 'lean-rent';
+    horizon = 'Lean rent — your money does more invested than tied up in equity';
+    verdict = 'Buying is cheaper monthly, but renting + investing wins on total wealth.';
+    reason = `Your ownership cost (${fmt(totalOwnership)}/mo) is slightly less than rent (${fmt(rent)}/mo), ` +
+      `so the monthly side favors buying. But the cash you'd tie up at closing (${fmt(cashToClose)}) earns more invested at ${invReturn}% ` +
+      `than the home appreciates. After ${h} year${h === 1 ? '' : 's'}, you'd be ~${fmt(Math.abs(wealth5.wealthImpact))} behind by buying — ` +
+      `even with the lower monthly payment.`;
+    action = `Next steps: (1) If you value low monthly cost over total wealth (e.g., for cash-flow stability or lifestyle), buying still works. ` +
+      `(2) If you want to maximize wealth, invest the ${fmt(cashToClose)} you'd put into closing in a diversified index fund and keep renting. ` +
+      `(3) Run the analysis again with higher appreciation (5%+) or a longer horizon to see what would tip the math back to buying.`;
   } else if (totalOwnership < rent) {
-    // Buying is slightly cheaper
+    // Buying is slightly cheaper AND wealth analysis doesn't contradict
     type = 'buy';
     horizon = 'Buy within the next 12 months';
     verdict = 'Buying is financially favorable under your current assumptions.';
@@ -800,8 +814,14 @@ function generateDecision(params, totalOwnership, netCost, equityHorizon, breakE
     action = `Next steps: (1) Confirm you plan to stay at least 3 years. ` +
       `(2) The monthly premium of ${fmt(monthlyDiff)} is the cost of building ${fmt(equity5yr)} in equity over ${h} years. ` +
       `(3) Get pre-approved and move quickly — rate increases could push the break-even out further.`;
-  } else if (breakEven.found && breakEven.year <= 5 && wealth5.wealthImpact > 0) {
-    // Moderate break-even, still net positive
+  } else if (breakEven.found && wealth5.wealthImpact > 0 &&
+             (breakEven.year <= 5 || (breakEven.year <= 7 && breakEven.year <= h - 1))) {
+    // Moderate break-even, still net positive at user's horizon.
+    // Two ways to qualify:
+    //   (a) BE within 5 years (the original threshold), OR
+    //   (b) BE within 7 years AND the user's horizon clears it by 1+ years
+    //       (so a 7y-horizon buyer with BE at 5.6y still gets BUY-MEDIUM,
+    //        not LEAN-RENT — they'll be past break-even by the time they leave).
     type = 'buy';
     const minStay = Math.ceil(breakEven.year);
     horizon = `Buy if you'll stay ${minStay}+ years`;
