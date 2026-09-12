@@ -6,7 +6,7 @@
 <title>Housing Decision Engine</title>
 <link rel="icon" type="image/png" href="../assets/logo.png">
 <link rel="apple-touch-icon" href="../assets/logo.png">
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 
@@ -460,7 +460,6 @@
             <div class="tipping-dial-caption" id="tippingDialCaption"></div>
           </div>
 
-          <div class="dp-conf-explanation" id="dpConfExplanation"></div>
           <div class="dp-narrative">
             <div class="dp-narr-block">
               <div class="dp-narr-label">Key Tradeoff</div>
@@ -475,8 +474,6 @@
               <div class="dp-narr-text" id="dpRiskNote"></div>
             </div>
           </div>
-          <div class="dp-assumption" id="dpAssumption">Analysis assumes renters invest savings at 7% annual return (broad market historical average)</div>
-          <div class="dp-reason" id="dpReason"></div>
           <div class="dp-metrics">
             <div class="dp-metric">
               <div class="dp-metric-label">Monthly Difference</div>
@@ -497,7 +494,7 @@
             </div>
           </div>
           <div class="dp-action" id="dpAction"></div>
-          <div class="dp-disclaimer">This tool compares the financial outcomes of renting vs buying based on your assumptions. It does not determine mortgage qualification. Lenders evaluate income, debts, and debt-to-income (DTI) when determining approval.</div>
+          <div class="dp-disclaimer">Compares financial outcomes under your assumptions. Not financial advice and not a mortgage qualification.</div>
         </div>
 
         <!-- ========== SCENARIO COMPARISON ========== -->
@@ -514,21 +511,21 @@
         </div>
 
         <!-- ========== KPI CARDS ========== -->
-        <p class="section-intro">Your estimated monthly costs at a glance — mortgage payment is principal &amp; interest only. Total monthly cost includes all ownership expenses.</p>
+        <p class="section-intro">Monthly costs at a glance</p>
         <div class="kpi-row">
           <div class="kpi-card" style="--accent: var(--blue)">
             <div class="kpi-label">Mortgage Payment (Principal &amp; Interest)
-              <span class="kpi-sublabel">Principal + interest only — does not include tax, insurance, or mortgage insurance (PMI / FHA MIP)</span>
+              <span class="kpi-sublabel">Principal + interest only</span>
             </div>
             <div class="kpi-value" id="kpiMortgage">—</div>
           </div>
           <div class="kpi-card" style="--accent: var(--amber)">
             <div class="kpi-label">Total Monthly Cost of Owning
-              <span class="kpi-sublabel">P&amp;I + property tax + insurance + maintenance + HOA + mortgage insurance</span>
+              <span class="kpi-sublabel">P&amp;I + tax + insurance + maintenance + HOA + MI</span>
             </div>
             <div class="kpi-value" id="kpiOwnership">—</div>
           </div>
-          <div class="kpi-card" style="--accent: var(--green)">
+          <div class="kpi-card" id="kpiNetCard" style="--accent: var(--green)">
             <div class="kpi-label">Monthly Out-of-Pocket Cost
               <span class="kpi-sublabel" id="kpiNetSublabel">Total ownership minus any rental income offset</span>
             </div>
@@ -539,11 +536,12 @@
             <div class="kpi-value" id="kpiRent">—</div>
           </div>
         </div>
+        <div class="monthly-delta-headline" id="monthlyDeltaHeadline" aria-live="polite"></div>
 
         <!-- ========== AFFORDABILITY / DTI ========== -->
         <div class="panel affordability-panel" id="affordabilityPanel" style="display:none;">
           <h3 class="panel-title">Affordability Check <span class="panel-title-sub">(Informational Only)</span></h3>
-          <p class="panel-subtitle">Your estimated debt-to-income (DTI) ratio is shown below for reference. <strong>This does not determine mortgage approval.</strong> Lenders weigh many factors — income, credit, assets, and loan type — beyond DTI. General guidelines: <strong>≤ 36%</strong> generally stronger; <strong>36–45%</strong> may still qualify depending on credit, reserves, and program; <strong>&gt; 45%</strong> stretch territory — harder to qualify under most conventional programs.</p>
+          <p class="panel-subtitle">Debt-to-income for reference only — it does not determine approval. Rough guide: <strong>≤ 36%</strong> stronger · <strong>36–45%</strong> may qualify · <strong>&gt; 45%</strong> stretch.</p>
           <div class="dti-row">
             <div class="dti-metric">
               <div class="dti-label">Debt-to-Income Ratio</div>
@@ -567,30 +565,6 @@
               <tr class="total-row"><td scope="row">Total Cash Needed</td><td class="val" id="ctcTotal"></td></tr>
             </tbody>
           </table>
-        </div>
-
-        <!-- ========== COST COMPARISON BAR ========== -->
-        <div class="panel comparison-panel">
-          <h3 class="panel-title">Monthly Cost Comparison</h3>
-          <p class="panel-context">A quick visual of what you'd pay each month under each option. Use this to sanity-check whether buying costs more or less than renting before factoring in equity and appreciation.</p>
-          <div class="monthly-delta-headline" id="monthlyDeltaHeadline" aria-live="polite"></div>
-          <div class="bar-group">
-            <div class="bar-row">
-              <span class="bar-label">Rent</span>
-              <div class="bar-track"><div class="bar-fill rent-bar" id="barRent"></div></div>
-              <span class="bar-amount" id="barRentAmt"></span>
-            </div>
-            <div class="bar-row">
-              <span class="bar-label">Buy</span>
-              <div class="bar-track"><div class="bar-fill buy-bar" id="barBuy"></div></div>
-              <span class="bar-amount" id="barBuyAmt"></span>
-            </div>
-            <div class="bar-row" id="hackRow" style="display:none;">
-              <span class="bar-label">House Hack</span>
-              <div class="bar-track"><div class="bar-fill hack-bar" id="barHack"></div></div>
-              <span class="bar-amount" id="barHackAmt"></span>
-            </div>
-          </div>
         </div>
 
         <!-- ========== NET WEALTH COMPARISON (dynamic horizon) ========== -->
@@ -707,7 +681,6 @@
             </span>
           </h3>
           <p class="panel-subtitle">Break-even is when Buy Net Position overtakes Rent Net Position — accounting for equity, appreciation, investment returns, and all cash outflows.</p>
-          <p class="panel-subtitle be-explainer">Break-even occurs when buying surpasses renting in total net wealth, including all costs and investment returns.</p>
           <div class="be-result" id="beResult">
             <div class="be-timeline" id="beTimeline"></div>
             <div class="be-bar-wrap" id="beBarWrap">
@@ -808,30 +781,6 @@
           </table>
         </div>
 
-        <!-- ========== HORIZON OUTLOOK (dynamic) ========== -->
-        <div class="panel">
-          <h3 class="panel-title" id="outlookPanelTitle">5-Year Outlook</h3>
-          <p class="panel-subtitle">A longer horizon means more rent paid — but also more equity built and more time for investments to compound.</p>
-          <div class="outlook-grid">
-            <div class="outlook-item">
-              <div class="outlook-label" id="olRentLabel">Total Rent Paid (5yr)</div>
-              <div class="outlook-value red" id="ol5Rent"></div>
-            </div>
-            <div class="outlook-item">
-              <div class="outlook-label" id="olOwnLabel">Total Ownership Cost (5yr)</div>
-              <div class="outlook-value" id="ol5Own"></div>
-            </div>
-            <div class="outlook-item">
-              <div class="outlook-label">Est. Home Equity Built</div>
-              <div class="outlook-value green" id="ol5Equity"></div>
-            </div>
-            <div class="outlook-item">
-              <div class="outlook-label" id="olValueLabel">Est. Home Value (5yr)</div>
-              <div class="outlook-value" id="ol5Value"></div>
-            </div>
-          </div>
-        </div>
-
         <!-- ========== NEXT STEPS ========== -->
         <div class="panel next-steps-panel">
           <h3 class="panel-title">Recommended Next Steps</h3>
@@ -870,7 +819,11 @@
 
         <!-- ========== HOW THIS DECISION IS CALCULATED ========== -->
         <div class="panel methodology-panel">
-          <h3 class="panel-title">How This Decision Is Calculated</h3>
+          <details class="assumptions-details">
+            <summary>
+              <h3 class="panel-title assumptions-title">How This Decision Is Calculated</h3>
+              <span class="assumptions-hint">Tap to expand</span>
+            </summary>
           <p class="panel-subtitle">Every number below is driven by your inputs — nothing is hardcoded. Change an input and re-analyze to see how the numbers shift.</p>
           <div class="meth-grid">
             <div class="meth-block">
@@ -903,6 +856,7 @@
               <div class="meth-value" id="methNet">—</div>
             </div>
           </div>
+          </details>
         </div>
 
         <!-- ========== ASSUMPTIONS ========== -->
@@ -1017,12 +971,12 @@
     <p class="footer-contact">
       <a href="../">&larr; Back to home</a>
       <span class="footer-sep" aria-hidden="true">·</span>
-      Contact: <a href="mailto:homebuyerdecisionengine@gmail.com">homebuyerdecisionengine@gmail.com</a>
+      <a href="https://github.com/ksaw-beep/Housing-Decision-Engine/issues" target="_blank" rel="noopener">Report an issue on GitHub</a>
     </p>
   </footer>
 
 </div>
 
-<script src="script.js?v=21"></script>
+<script src="script.js?v=22"></script>
 </body>
 </html>

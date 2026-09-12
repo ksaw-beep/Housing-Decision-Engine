@@ -1262,7 +1262,7 @@ function calculate() {
     $('dpIcon').textContent = '🔑';
   }
   $('dpVerdict').textContent = decision.verdict;
-  $('dpReason').textContent = decision.reason;
+  if ($('dpReason')) $('dpReason').textContent = decision.reason;
   $('dpAction').textContent = decision.action;
 
   // Time horizon — prefix with "Your move:" so the actionable recommendation reads clearly
@@ -1325,7 +1325,7 @@ function calculate() {
   $('sumRate').textContent = params.rate + '%';
 
   // === DYNAMIC ASSUMPTION LINE ===
-  $('dpAssumption').textContent = `Analysis assumes renters invest savings at ${investReturn}% annual return`;
+  if ($('dpAssumption')) $('dpAssumption').textContent = `Analysis assumes renters invest savings at ${investReturn}% annual return`;
 
   // === KPI CARDS ===
   $('kpiMortgage').textContent = fmt(monthlyMortgage);
@@ -1375,12 +1375,8 @@ function calculate() {
     $('bdNetRow').style.display = 'none';
   }
 
-  // === BAR CHART ===
-  const maxCost = Math.max(rent, totalOwnership, netCost > 0 ? netCost : 0);
-  $('barRent').style.width = (rent / maxCost * 100) + '%';
-  $('barRentAmt').textContent = fmt(rent);
-  $('barBuy').style.width = (totalOwnership / maxCost * 100) + '%';
-  $('barBuyAmt').textContent = fmt(totalOwnership);
+  // Out-of-pocket card only earns its place when rental income changes the number
+  if ($('kpiNetCard')) $('kpiNetCard').style.display = rentalIncome > 0 ? '' : 'none';
 
   // Plain-English headline: the delta between the two bars, stated once.
   // Prefer the house-hack figure when rental income offsets ownership cost.
@@ -1402,13 +1398,6 @@ function calculate() {
     }
   }
 
-  if (rentalIncome > 0) {
-    $('hackRow').style.display = '';
-    $('barHack').style.width = Math.max(netCost / maxCost * 100, 2) + '%';
-    $('barHackAmt').textContent = fmt(netCost);
-  } else {
-    $('hackRow').style.display = 'none';
-  }
 
   // === NET WEALTH COMPARISON ===
   // Uses the SAME wealth5 object from the decision engine — single source of truth
@@ -1698,10 +1687,7 @@ function calculate() {
   // === METHODOLOGY PANEL ("How This Decision Is Calculated") ===
   renderMethodology(params, totalOwnership, decision.wealth5);
 
-  $('ol5Rent').textContent = fmt(totalRentHorizon);
-  $('ol5Own').textContent = fmt(totalOwnHorizon);
-  $('ol5Equity').textContent = fmt(equityHorizon);
-  $('ol5Value').textContent = fmt(homeValueHorizon);
+  if ($('ol5Rent')) { $('ol5Rent').textContent = fmt(totalRentHorizon); $('ol5Own').textContent = fmt(totalOwnHorizon); $('ol5Equity').textContent = fmt(equityHorizon); $('ol5Value').textContent = fmt(homeValueHorizon); }
 
   // Store last result for scenario comparison (F1)
   lastResult = {
