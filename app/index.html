@@ -6,57 +6,12 @@
 <title>Housing Decision Engine</title>
 <link rel="icon" type="image/png" href="../assets/logo.png">
 <link rel="apple-touch-icon" href="../assets/logo.png">
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 
 <div class="container">
 
-  <!-- PAID UNLOCK BANNER (shown after verified Stripe session) -->
-  <div class="paid-banner" id="paidBanner" hidden role="status" aria-live="polite">
-    <span class="paid-banner-icon" aria-hidden="true">✅</span>
-    <div class="paid-banner-text">
-      <div class="paid-banner-title">Your full decision plan is unlocked</div>
-      <div class="paid-banner-sub">You're now viewing the complete analysis including your personalized recommendation, break-even timing, and long-term wealth comparison.</div>
-    </div>
-  </div>
-
-  <!-- PREVIEW BANNER (shown when ?paid=true but session cannot be verified) -->
-  <div class="preview-access-banner" id="previewBanner" hidden role="status">
-    <span class="preview-access-icon" aria-hidden="true">🔒</span>
-    <span>You're viewing the preview. <a href="https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00" class="preview-access-link">Unlock the full analysis — $19</a></span>
-  </div>
-
-  <!-- VERIFY-FAILED BANNER (shown when Stripe redirect arrives but verification retries all fail) -->
-  <div class="verify-failed-banner" id="verifyFailedBanner" hidden role="alert">
-    <span class="verify-failed-icon" aria-hidden="true">⚠️</span>
-    <div class="verify-failed-text">
-      <div class="verify-failed-title">Payment received — auto-verification failed</div>
-      <div class="verify-failed-sub">
-        We couldn't reach our verification service after several attempts, but your payment went through successfully.
-        Email <a href="mailto:homebuyerdecisionengine@gmail.com?subject=Manual%20unlock%20request&amp;body=Session%20ID%3A%20">homebuyerdecisionengine@gmail.com</a>
-        with the session ID below and we'll unlock your account manually (usually within a few hours).
-      </div>
-      <div class="verify-failed-sid">Session ID: <code id="verifyFailedSid">—</code>
-        <button type="button" class="verify-failed-copy" onclick="copyVerifySid()">Copy</button>
-        <button type="button" class="verify-failed-retry" onclick="retryVerification()">Retry now</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- RECOVERY-LINK BANNER (shown once after first successful unlock) -->
-  <div class="recovery-banner" id="recoveryBanner" hidden role="status">
-    <span class="recovery-icon" aria-hidden="true">🔑</span>
-    <div class="recovery-text">
-      <div class="recovery-title">Save your access link</div>
-      <div class="recovery-sub">Bookmark this link or email it to yourself — it restores your full analysis on any device, even if you clear your browser.</div>
-      <div class="recovery-link-row">
-        <input type="text" id="recoveryLinkInput" class="recovery-link-input" readonly aria-label="Recovery link">
-        <button type="button" class="recovery-copy" onclick="copyRecoveryLink()">Copy link</button>
-        <button type="button" class="recovery-dismiss" aria-label="Dismiss" onclick="dismissRecoveryBanner()">Got it</button>
-      </div>
-    </div>
-  </div>
 
   <!-- HEADER -->
   <header class="header">
@@ -135,13 +90,13 @@
           <label for="timeHorizon">How long do you plan to own?
             <span class="tip-wrap">
               <button type="button" class="tip-btn" aria-label="More info about ownership horizon" aria-describedby="tip-horizon" title="Ownership Horizon" onclick="tipToggle(this)">?</button>
-              <span class="tip-content" role="tooltip" id="tip-horizon">How many years you expect to hold this property. A longer horizon gives equity and appreciation more time to outweigh upfront costs. Enter 0 to analyze an immediate purchase.</span>
+              <span class="tip-content" role="tooltip" id="tip-horizon">How many years you expect to hold this property. A longer horizon gives equity and appreciation more time to outweigh upfront and selling costs.</span>
             </span>
           </label>
           <div class="input-wrap years">
-            <input type="number" id="timeHorizon" value="5" min="0" max="30" step="1">
+            <input type="number" id="timeHorizon" value="5" min="1" max="40" step="1">
           </div>
-          <span class="input-bench">Enter 0 to analyze an immediate purchase. Used for break-even, wealth comparison, and outlook.</span>
+          <span class="input-bench">Minimum 1 year. Drives break-even, the wealth comparison, and the outlook.</span>
         </div>
         <div class="input-group advanced-only">
           <label for="propertyState">Property State</label>
@@ -175,6 +130,32 @@
               <input type="number" id="sellingCostsPct" value="6" min="0" max="15" step="0.5">
             </div>
             <span class="input-bench">Agent commissions + transfer taxes + title fees. Typical: 5–8%. Applied at end of time horizon.</span>
+          </div>
+        </div>
+        <div class="input-row-2 advanced-only">
+          <div class="input-group">
+            <label for="costInflationPct">Ownership Cost Inflation
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Ownership Cost Inflation" aria-describedby="tip-costinfl" title="Ownership Cost Inflation" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-costinfl">How fast property tax, insurance, maintenance, and HOA dues rise each year. Rent has its own growth rate; this keeps the ownership side honest too. Mortgage principal &amp; interest stay fixed.</span>
+              </span>
+            </label>
+            <div class="input-wrap percent">
+              <input type="number" id="costInflationPct" value="3" min="0" max="15" step="0.5">
+            </div>
+            <span class="input-bench">Per year, on tax / insurance / maintenance / HOA. Typical: 2–4%.</span>
+          </div>
+          <div class="input-group">
+            <label for="investTaxPct">Tax on Investment Gains
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about Tax on Investment Gains" aria-describedby="tip-investtax" title="Tax on Investment Gains" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-investtax">Applied to the renter's (and buyer's) investment gains at the end of the horizon. Gains on a primary home are usually tax-free up to $250K/$500K, so ignoring this tilts the math toward renting. 15% is the common long-term capital gains rate; use 0% if investing in a Roth or you'd never sell.</span>
+              </span>
+            </label>
+            <div class="input-wrap percent">
+              <input type="number" id="investTaxPct" value="15" min="0" max="50" step="1">
+            </div>
+            <span class="input-bench">Long-term capital gains. Typical: 15% (0% or 20% at the extremes).</span>
           </div>
         </div>
         <div class="input-row-2 advanced-only">
@@ -354,6 +335,13 @@
             <span class="input-bench">Typical: 20–30%</span>
           </div>
         </div>
+        <div class="input-group" id="rentalUnitsGroup" style="display:none;">
+          <label for="rentalUnits">Number of Units You'll Rent Out</label>
+          <div class="input-wrap">
+            <input type="number" id="rentalUnits" value="1" min="1" max="10" step="1">
+          </div>
+          <span class="input-bench">Not counting the unit you live in. Used to estimate what your own unit rents for if you move out.</span>
+        </div>
         <div class="input-group" id="moveOutGroup" style="display:none;">
           <label for="moveOutYear">When do you plan to move out and rent your unit?</label>
           <div class="input-wrap select">
@@ -365,7 +353,7 @@
               <option value="5">After 5 years</option>
             </select>
           </div>
-          <span class="input-bench">When you move out, your unit also becomes a rental. The model estimates full-property rental income at ~1.75× your current unit income — you'll see the effect on cash flow in the wealth chart.</span>
+          <span class="input-bench">When you move out, your unit is rented too (estimated at the average rent of your other units) — and you start paying rent elsewhere, just like the renter. Both show up in the wealth chart from that year.</span>
           <div class="move-out-warn" id="moveOutWarn" role="status" aria-live="polite" style="display:none;"></div>
         </div>
       </div>
@@ -425,7 +413,7 @@
         <div class="analysis-status" id="analysisStatus" role="status" aria-live="polite" aria-atomic="true">
           <span class="analysis-status-icon" aria-hidden="true">✓</span>
           <span id="analysisStatusText">Analysis updated</span>
-          <button type="button" class="share-analysis-btn" id="shareAnalysisBtn" onclick="copyShareLink()" title="Copy a link to this analysis" hidden>
+          <button type="button" class="share-analysis-btn" id="shareAnalysisBtn" onclick="copyShareLink()" title="Copy a link to this analysis">
             <span aria-hidden="true">🔗</span> Share this analysis
           </button>
           <span class="share-analysis-toast" id="shareAnalysisToast" role="status" aria-live="polite" hidden>Link copied ✓</span>
@@ -435,7 +423,7 @@
         <div class="scenario-active-badge" id="scenarioActiveBadge" style="display:none;" aria-live="polite"></div>
 
         <!-- ========== YOUR DECISION PLAN ========== -->
-        <div class="decision-plan paid-only" id="decisionPlan">
+        <div class="decision-plan" id="decisionPlan">
           <div class="dp-header">
             <div class="dp-icon" id="dpIcon">🏠</div>
             <div>
@@ -513,7 +501,7 @@
         </div>
 
         <!-- ========== SCENARIO COMPARISON ========== -->
-        <div class="panel compare-panel paid-only" id="comparePanel" style="display:none;">
+        <div class="panel compare-panel" id="comparePanel" style="display:none;">
           <h3 class="panel-title">Scenario Comparison</h3>
           <p class="panel-subtitle">Side-by-side comparison of your saved scenarios. Column headers show your custom labels (or "Scenario A/B" by default). Each row shows how the key metrics differ between the two.</p>
           <table class="compare-table">
@@ -553,7 +541,7 @@
         </div>
 
         <!-- ========== AFFORDABILITY / DTI ========== -->
-        <div class="panel affordability-panel paid-only" id="affordabilityPanel" style="display:none;">
+        <div class="panel affordability-panel" id="affordabilityPanel" style="display:none;">
           <h3 class="panel-title">Affordability Check <span class="panel-title-sub">(Informational Only)</span></h3>
           <p class="panel-subtitle">Your estimated debt-to-income (DTI) ratio is shown below for reference. <strong>This does not determine mortgage approval.</strong> Lenders weigh many factors — income, credit, assets, and loan type — beyond DTI. General guidelines: <strong>≤ 36%</strong> generally stronger; <strong>36–45%</strong> may still qualify depending on credit, reserves, and program; <strong>&gt; 45%</strong> stretch territory — harder to qualify under most conventional programs.</p>
           <div class="dti-row">
@@ -606,7 +594,7 @@
         </div>
 
         <!-- ========== NET WEALTH COMPARISON (dynamic horizon) ========== -->
-        <div class="panel wealth-panel paid-only">
+        <div class="panel wealth-panel">
           <h3 class="panel-title" id="wealthPanelTitle">Net Financial Position — 5 Years</h3>
           <p class="panel-subtitle" id="wealthPanelSubtitle">What's your total financial outcome after 5 years in each scenario?</p>
           <div class="wealth-grid">
@@ -633,11 +621,15 @@
                   <span id="wBuyCostLabel">Monthly costs paid (5yr)</span>
                   <span class="wealth-neg" id="wBuyCost"></span>
                 </div>
+                <div class="wealth-line" id="wBuySavingsRow" style="display:none;">
+                  <span>Monthly savings invested (when owning is cheaper)</span>
+                  <span class="wealth-pos" id="wBuySavingsGains"></span>
+                </div>
                 <div class="wealth-line total">
                   <span>Net position
                     <span class="tip-wrap">
                       <button type="button" class="tip-btn" aria-label="More info about Buy net position" aria-describedby="tip-buynet" onclick="tipToggle(this)">?</button>
-                      <span class="tip-content" role="tooltip" id="tip-buynet">Your total wealth from buying over your time horizon: equity and appreciation gained, minus all cash spent (down payment, closing costs, monthly ownership costs).</span>
+                      <span class="tip-content" role="tooltip" id="tip-buynet">Your total wealth from buying over your time horizon: equity and appreciation gained (net of selling costs), minus all cash spent (down payment, closing costs, monthly ownership costs net of any rental income), plus after-tax gains on anything you invested in months when owning was cheaper than renting.</span>
                     </span>
                   </span>
                   <span id="wBuyNet"></span>
@@ -655,6 +647,10 @@
                   <span>Monthly savings invested</span>
                   <span class="wealth-pos" id="wRentSavingsGains"></span>
                 </div>
+                <div class="wealth-line" id="wRentTaxRow" style="display:none;">
+                  <span id="wRentTaxLabel">Tax on investment gains</span>
+                  <span class="wealth-neg" id="wRentTax"></span>
+                </div>
                 <div class="wealth-line">
                   <span id="wRentCostLabel">Total rent paid (5yr)</span>
                   <span class="wealth-neg" id="wRentCost"></span>
@@ -663,7 +659,7 @@
                   <span>Net position
                     <span class="tip-wrap">
                       <button type="button" class="tip-btn" aria-label="More info about Rent net position" aria-describedby="tip-rentnet" onclick="tipToggle(this)">?</button>
-                      <span class="tip-content" role="tooltip" id="tip-rentnet">Your total wealth from renting over your time horizon: investment gains (down payment + monthly savings invested) minus all rent paid.</span>
+                      <span class="tip-content" role="tooltip" id="tip-rentnet">Your total wealth from renting over your time horizon: after-tax investment gains (cash-to-close invested on day one, plus the monthly difference whenever renting is cheaper) minus all rent paid.</span>
                     </span>
                   </span>
                   <span id="wRentNet"></span>
@@ -676,7 +672,7 @@
         </div>
 
         <!-- ========== WEALTH OVER TIME (CHART) ========== -->
-        <div class="panel chart-panel paid-only">
+        <div class="panel chart-panel">
           <h3 class="panel-title">Wealth Over Time</h3>
           <p class="panel-subtitle">How does your net financial position evolve year by year?</p>
           <p class="panel-context">Watch where the two lines cross — that's the break-even year. The further past crossing you plan to stay, the more confidently buying wins. If they never cross, renting-and-investing is the sturdier play under your assumptions.</p>
@@ -703,7 +699,7 @@
         </div>
 
         <!-- ========== BREAK-EVEN ANALYSIS ========== -->
-        <div class="panel breakeven-panel paid-only">
+        <div class="panel breakeven-panel">
           <h3 class="panel-title">Break-Even Analysis
             <span class="tip-wrap">
               <button type="button" class="tip-btn" aria-label="More info about Break-Even Analysis" aria-describedby="tip-breakeven" onclick="tipToggle(this)">?</button>
@@ -721,8 +717,8 @@
               </div>
               <div class="be-bar-labels">
                 <span>Year 0</span>
-                <span>Year 5</span>
-                <span>Year 10</span>
+                <span id="beBarMid">Year 5</span>
+                <span id="beBarEnd">Year 10</span>
               </div>
             </div>
             <div class="be-detail" id="beDetail"></div>
@@ -773,7 +769,7 @@
         </div>
 
         <!-- ========== SENSITIVITY ANALYSIS ========== -->
-        <div class="panel sensitivity-panel paid-only">
+        <div class="panel sensitivity-panel">
           <h3 class="panel-title">Sensitivity Analysis</h3>
           <p class="panel-subtitle">What would need to change to shift the recommendation?</p>
           <p class="panel-context">A small cushion means the recommendation is fragile — a rate tick or price change could flip it. A wide cushion means you're on solid ground.</p>
@@ -806,7 +802,7 @@
               <tr><td scope="row">HOA</td><td class="val" id="bdHOA"></td></tr>
               <tr id="bdPMIRow"><td id="bdPMILabel" scope="row">PMI</td><td class="val" id="bdPMI"></td></tr>
               <tr class="total-row"><td scope="row">Total Ownership</td><td class="val" id="bdTotal"></td></tr>
-              <tr id="bdRentalRow" style="display:none;"><td scope="row">Rental Income</td><td class="val green" id="bdRental"></td></tr>
+              <tr id="bdRentalRow" style="display:none;"><td scope="row" id="bdRentalLabel">Rental Income (after vacancy &amp; costs)</td><td class="val green" id="bdRental"></td></tr>
               <tr id="bdNetRow" style="display:none;" class="total-row"><td scope="row">Net Monthly Cost</td><td class="val" id="bdNet"></td></tr>
             </tbody>
           </table>
@@ -920,17 +916,19 @@
             <li>Mortgage calculated using standard amortization formula</li>
             <li>Closing costs are included as a % of home price (user-editable, default 3%) and added to the total upfront cash outflow for both break-even and wealth comparisons</li>
             <li>Property tax uses state-level benchmark estimates that can vary significantly by county or municipality — override with your own number anytime</li>
-            <li>Conventional PMI is estimated based on credit score range and applied when down payment is below 20%, and may be removable once sufficient equity is reached. FHA loans use an ongoing mortgage insurance premium (MIP, ~0.55%/yr) that typically applies for the life of the loan depending on down payment — this is for planning purposes only, not a lender quote</li>
+            <li>Conventional PMI is estimated from your credit score range when the down payment is below 20%, and is <strong>dropped automatically</strong> in the month the loan balance falls to 80% of the purchase price. FHA MIP (~0.55%/yr) runs 11 years with 10%+ down, or the life of the loan below 10% down. Planning estimates only, not a lender quote</li>
             <li>Investment return assumption (user-adjustable, default 7%) is not guaranteed — it represents a broad market historical average for a diversified equity portfolio. Lower it to model a more conservative scenario</li>
             <li>House hack rental income is adjusted for vacancy rate and "Operating Costs (% of rent)" — default 5% vacancy and 25% operating costs — so projections don't overstate net cash flow. These two controls reduce gross rental income to an estimated net figure</li>
-            <li>Move-out transition: when you indicate you'll move out of your unit, the model assumes your unit also becomes a rental, increasing effective income to ~1.75× of the current unit estimate to approximate whole-property rental. This causes a visible step change in the wealth chart at that year</li>
+            <li>Move-out transition: from the year you move out, your unit is also rented (estimated at the average of your other units, after the same vacancy and operating-cost haircut) <strong>and</strong> you pay market rent elsewhere (your current rent, growing at the rent-growth rate) — the same rent the renter pays. Positive cash flow from the property reduces your cumulative cost</li>
             <li>Affordability / DTI check is informational only — it does NOT determine mortgage approval. Lenders evaluate income, credit, assets, loan type, and many other factors. DTI benchmarks: ≤ 36% generally stronger; 36–45% may still qualify depending on credit and reserves; &gt; 45% stretch territory — consult a lender</li>
             <li>Home appreciation and rent growth are estimates, not guarantees</li>
             <li>Maintenance estimated as a % of home value per year</li>
             <li>Equity = down payment + principal paid + appreciation gain, minus <strong>exit costs at sale</strong> (agent commissions + transfer taxes + title/escrow fees, default 6%) applied to the projected home value at exit. This keeps the comparison apples-to-apples — the buy side only gets credit for equity you could actually realize by converting the home back to cash. On short horizons (&lt; 5 years) this is one of the most impactful assumptions; on very long horizons it has less influence</li>
-            <li>Renter invests the full cash-to-close (down payment + closing costs) as a lump sum, plus monthly savings at the chosen return rate</li>
-            <li>Break-even compares cumulative net wealth including investment returns</li>
-            <li>Sensitivity analysis uses binary search to find thresholds — directionally accurate</li>
+            <li>The comparison is simulated month by month. The renter invests the full cash-to-close on day one. Each month, whichever path is cheaper invests the difference at the chosen return rate — so the renter's contributions shrink as rent grows, and a buyer whose payment is below rent invests too. Investment gains on both sides are taxed at the "Tax on Investment Gains" rate at exit; home-sale gains are treated as tax-free (the primary-residence exclusion)</li>
+            <li>Property tax, insurance, maintenance, and HOA grow at the "Ownership Cost Inflation" rate each year; mortgage principal &amp; interest stay fixed</li>
+            <li>Not modeled: the mortgage-interest / property-tax deduction (most first-time buyers take the standard deduction; if you'd itemize, the true cost of owning is somewhat lower than shown), a VA funding fee, and points or rate buy-downs</li>
+            <li>Break-even compares cumulative net wealth including investment returns, scanning every month out to 10 years or your time horizon, whichever is longer</li>
+            <li>Sensitivity tipping points are the rate and price at which the <strong>recommendation itself</strong> flips (wealth impact at your horizon crosses zero), found by binary search — directionally accurate</li>
             <li>Benchmarks shown next to inputs are planning guides based on long-run averages — not exact quotes for your specific home, lender, or insurer</li>
             <li>This is a planning tool, not a lender quote or financial advice — consult a financial advisor for major decisions</li>
           </ul>
@@ -968,14 +966,14 @@
       <details>
         <summary>What does "break-even" mean here?</summary>
         <p>The <strong>break-even</strong> point is the month when buying's total net wealth overtakes renting-and-investing. Before that point, a renter who invested the down payment plus the monthly cash-flow difference would be ahead. After that point, equity + appreciation pull buying ahead.</p>
-        <p>Our engine searches month-by-month out to 10 years. If no sustained crossover exists, we report "not within 10 years."</p>
+        <p>Our engine searches month-by-month out to 10 years, or your time horizon if it's longer. If no sustained crossover exists in that window, we say so.</p>
       </details>
       <details>
         <summary>What is "wealth impact" over my time horizon?</summary>
         <p>It's the dollar difference in your net financial position between buying and renting at the end of your planned ownership horizon. Both sides are computed the same way:</p>
         <ul>
-          <li><strong>Buy side:</strong> equity built (down payment + principal paid + appreciation) minus all cash out (closing costs, monthly ownership costs, selling costs at exit).</li>
-          <li><strong>Rent side:</strong> investment gains on the cash you didn't spend on the home and on any monthly savings, minus all rent paid.</li>
+          <li><strong>Buy side:</strong> equity built (down payment + principal paid + appreciation) minus all cash out (closing costs, monthly ownership costs net of rental income, selling costs at exit), plus after-tax gains on anything invested in months when owning was cheaper.</li>
+          <li><strong>Rent side:</strong> after-tax investment gains on the cash you didn't spend on the home and on the monthly difference whenever renting is cheaper, minus all rent paid.</li>
         </ul>
         <p>A positive wealth impact means buying comes out ahead; negative means renting-and-investing does.</p>
       </details>
@@ -983,8 +981,8 @@
         <summary>What does the Confidence level (High / Medium / Low) mean?</summary>
         <p><strong>Confidence</strong> measures how robust the recommendation is to reasonable changes in your inputs — not how accurate the numbers are. It's derived from four signals:</p>
         <ul>
-          <li><strong>Break-even clarity</strong> — how soon (or whether) buying overtakes renting within 10 years.</li>
-          <li><strong>Rate cushion</strong> — how far today's rate sits from the rate at which the monthly math would flip.</li>
+          <li><strong>Break-even vs. your horizon</strong> — how much cushion there is between the break-even point and how long you plan to stay.</li>
+          <li><strong>Rate cushion</strong> — how far today's rate sits from the rate at which the recommendation would flip.</li>
           <li><strong>Price cushion</strong> — how far the home price sits from the price at which the call would flip.</li>
           <li><strong>Wealth-impact magnitude</strong> — how large the buy-vs-rent gap is at your time horizon.</li>
         </ul>
@@ -1010,10 +1008,6 @@
         <summary>Is this financial advice?</summary>
         <p>No. This is a planning tool for educational purposes. It does not determine mortgage qualification and is not a substitute for a lender, financial advisor, or HUD-approved housing counselor. For binding numbers, get a Loan Estimate from at least 3 lenders.</p>
       </details>
-      <details>
-        <summary>How does the refund work?</summary>
-        <p>If the tool doesn&#x2019;t give you a clearer, more confident decision, email <a href="mailto:homebuyerdecisionengine@gmail.com?subject=Refund%20request">homebuyerdecisionengine@gmail.com</a> within 7 days of your purchase with a brief reason. We&#x2019;ll process a full refund through Stripe (usually within 1–2 business days). No friction — we&#x2019;d rather refund you than have you stuck with something you didn&#x2019;t find useful.</p>
-      </details>
     </div>
   </aside>
 
@@ -1029,239 +1023,6 @@
 
 </div>
 
-<script src="script.js?v=19"></script>
-<script>
-/**
- * PAID ACCESS GATING (Phase 5)
- * ─────────────────────────────
- * Strategy:
- *  1. Read ?paid=true and ?session_id=cs_xxx from the URL (Stripe success redirect).
- *  2. If session_id is present, verify it server-side via the Netlify Function.
- *     Only show the "unlocked" banner if verification succeeds.
- *  3. If no session_id (e.g. someone just typed ?paid=true), show a non-alarming
- *     "preview" banner instead — never unlock paid content based on URL alone.
- *  4. If verification fails or the function is unavailable, fall back to preview banner.
- *
- * Stripe redirect URL to set in your Stripe dashboard:
- *   Success URL: https://your-site.netlify.app/app/?paid=true&session_id={CHECKOUT_SESSION_ID}
- *
- * ENVIRONMENT VARIABLE required in Netlify:
- *   STRIPE_SECRET_KEY — your Stripe secret key (never exposed to the browser)
- */
-(function () {
-  const STORAGE_KEY = 'hde_paid_session_v1';
-  const RECOVERY_SHOWN_KEY = 'hde_recovery_shown_v1';
-
-  const params   = new URLSearchParams(window.location.search);
-  const isPaid   = params.get('paid') === 'true';
-  const urlSessionId = params.get('session_id') || '';
-
-  const paidBanner    = document.getElementById('paidBanner');
-  const previewBanner = document.getElementById('previewBanner');
-  const verifyFailedBanner = document.getElementById('verifyFailedBanner');
-  const recoveryBanner = document.getElementById('recoveryBanner');
-
-  // ── Early exit: localhost dev bypass already unlocked access ─────────────
-  // script.js sets window.paidAccessVerified = true when ?dev=true is present
-  // AND the hostname is localhost/127.0.0.1/file://. The content is already
-  // unlocked — don't show any banners and skip Stripe verification.
-  if (window.paidAccessVerified === true) {
-    if (paidBanner) paidBanner.hidden = true;
-    if (previewBanner) previewBanner.hidden = true;
-    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
-    return;
-  }
-
-  // ── localStorage helpers (wrapped for private-mode / disabled-storage safety) ──
-  function storageGet(key) {
-    try { return window.localStorage.getItem(key || STORAGE_KEY); }
-    catch (_) { return null; }
-  }
-  function storageSet(value, key) {
-    try { window.localStorage.setItem(key || STORAGE_KEY, value); }
-    catch (_) { /* private mode — silently skip */ }
-  }
-  function storageClear(key) {
-    try { window.localStorage.removeItem(key || STORAGE_KEY); }
-    catch (_) { /* ignore */ }
-  }
-
-  function hideAllBanners() {
-    if (paidBanner) paidBanner.hidden = true;
-    if (previewBanner) previewBanner.hidden = true;
-    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
-  }
-
-  function showPaidUnlocked(customerEmail, sessionIdForRecovery) {
-    if (paidBanner) {
-      paidBanner.hidden = false;
-      if (customerEmail) {
-        var sub = paidBanner.querySelector('.paid-banner-sub');
-        if (sub) sub.textContent = 'Unlocked for ' + customerEmail + '. Full analysis — recommendation, break-even, and wealth chart — is active.';
-      }
-    }
-    if (previewBanner) previewBanner.hidden = true;
-    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
-    // Unlock paid content sections
-    if (typeof unlockPaidAccess === 'function') unlockPaidAccess();
-    // Show recovery banner ONCE after first successful unlock
-    if (sessionIdForRecovery && recoveryBanner && !storageGet(RECOVERY_SHOWN_KEY)) {
-      const link = window.location.origin + '/app/?paid=true&session_id=' + encodeURIComponent(sessionIdForRecovery);
-      const linkInput = document.getElementById('recoveryLinkInput');
-      if (linkInput) linkInput.value = link;
-      recoveryBanner.hidden = false;
-      storageSet('1', RECOVERY_SHOWN_KEY);
-    }
-  }
-
-  function showPreviewMode(reason) {
-    if (previewBanner) previewBanner.hidden = false;
-    if (paidBanner) paidBanner.hidden = true;
-    if (verifyFailedBanner) verifyFailedBanner.hidden = true;
-    if (reason) console.info('[HDE] Preview mode:', reason);
-  }
-
-  function showVerifyFailed(sessionId) {
-    hideAllBanners();
-    if (verifyFailedBanner) {
-      verifyFailedBanner.hidden = false;
-      const sidEl = document.getElementById('verifyFailedSid');
-      if (sidEl) sidEl.textContent = sessionId;
-    }
-  }
-
-  // ── Verify a session ID server-side (single attempt) ─────────────────────
-  function verifySessionOnce(sid) {
-    return fetch('/.netlify/functions/verify-session?session_id=' + encodeURIComponent(sid))
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then(function (data) {
-        return {
-          paid: !!(data && data.ok && data.paid),
-          customer: (data && data.customer) || null,
-          error: (data && data.error) || null,
-        };
-      });
-  }
-
-  // ── Verify with retry + exponential backoff ──────────────────────────────
-  // Retries on network/5xx errors only. A clean response saying paid=false is
-  // treated as an authoritative negative and NOT retried.
-  // Delays: 0ms (attempt 1), 600ms (attempt 2), 1800ms (attempt 3).
-  function verifySessionWithRetry(sid, maxAttempts) {
-    maxAttempts = maxAttempts || 3;
-    let attempt = 0;
-    function tryOnce() {
-      attempt++;
-      return verifySessionOnce(sid).catch(function (err) {
-        console.warn('[HDE] verify attempt ' + attempt + ' failed:', err && err.message);
-        if (attempt >= maxAttempts) throw err;
-        const delay = 600 * Math.pow(3, attempt - 1);
-        return new Promise(function (resolve) { setTimeout(resolve, delay); }).then(tryOnce);
-      });
-    }
-    return tryOnce();
-  }
-
-  // ── Expose helpers for banner buttons ────────────────────────────────────
-  window.copyVerifySid = function () {
-    const sid = (document.getElementById('verifyFailedSid') || {}).textContent || '';
-    if (!sid || sid === '—') return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(sid).catch(function () {});
-    }
-    const btn = document.querySelector('.verify-failed-copy');
-    if (btn) { const orig = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(function () { btn.textContent = orig; }, 1500); }
-  };
-  window.retryVerification = function () {
-    const sid = (document.getElementById('verifyFailedSid') || {}).textContent || '';
-    if (!sid || sid === '—') return;
-    const btn = document.querySelector('.verify-failed-retry');
-    if (btn) { btn.disabled = true; btn.textContent = 'Retrying…'; }
-    verifySessionWithRetry(sid, 3).then(function (result) {
-      if (result.paid) {
-        storageSet(sid);
-        showPaidUnlocked(result.customer, sid);
-      } else {
-        if (btn) { btn.disabled = false; btn.textContent = 'Retry now'; }
-      }
-    }).catch(function () {
-      if (btn) { btn.disabled = false; btn.textContent = 'Retry now'; }
-    });
-  };
-  window.copyRecoveryLink = function () {
-    const input = document.getElementById('recoveryLinkInput');
-    if (!input) return;
-    input.select();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(input.value).catch(function () {});
-    } else {
-      try { document.execCommand('copy'); } catch (_) {}
-    }
-    const btn = document.querySelector('.recovery-copy');
-    if (btn) { const orig = btn.textContent; btn.textContent = 'Copied ✓'; setTimeout(function () { btn.textContent = orig; }, 1500); }
-  };
-  window.dismissRecoveryBanner = function () {
-    if (recoveryBanner) recoveryBanner.hidden = true;
-  };
-
-  // ── PATH A: URL says ?paid=true&session_id=cs_xxx (Stripe success redirect) ──
-  if (isPaid && urlSessionId && urlSessionId.startsWith('cs_')) {
-    verifySessionWithRetry(urlSessionId, 3)
-      .then(function (result) {
-        if (result.paid) {
-          storageSet(urlSessionId);
-          showPaidUnlocked(result.customer, urlSessionId);
-        } else {
-          // Authoritative negative from Stripe — session exists but not paid.
-          // Don't clear storage here in case a valid prior session is stored.
-          showPreviewMode('Stripe verification returned paid=false: ' + (result.error || 'unknown'));
-        }
-      })
-      .catch(function (err) {
-        // All retries exhausted. Payment almost certainly succeeded (user just
-        // came from Stripe), but we can't confirm it. Store the session id so
-        // future loads can re-verify, and show the "manual unlock" banner with
-        // the session id visible so the user can email support.
-        console.warn('[HDE] All verification retries failed on Stripe return:', err && err.message);
-        storageSet(urlSessionId);
-        showVerifyFailed(urlSessionId);
-      });
-    return;
-  }
-
-  // ?paid=true with no/invalid session_id is treated as spoofed — ignore and continue below.
-  if (isPaid) {
-    console.info('[HDE] ?paid=true present but session_id missing/invalid — ignoring URL param.');
-  }
-
-  // ── PATH B: no valid URL token → check localStorage for a prior session ──
-  const storedSessionId = storageGet();
-  if (storedSessionId && storedSessionId.startsWith('cs_')) {
-    verifySessionWithRetry(storedSessionId, 3)
-      .then(function (result) {
-        if (result.paid) {
-          showPaidUnlocked(result.customer, null); // don't re-show recovery banner on return visits
-        } else {
-          // Session no longer valid (shouldn't happen for paid sessions, but defensive)
-          storageClear();
-          showPreviewMode('Stored session failed re-verification: ' + (result.error || 'unknown'));
-        }
-      })
-      .catch(function (err) {
-        // All retries failed on a stored session. Keep the stored id so the
-        // next page load retries; show preview mode + a console note for now.
-        console.warn('[HDE] Stored-session verification unavailable after retries:', err && err.message);
-        showPreviewMode('Verification unavailable — try reloading');
-      });
-    return;
-  }
-
-  // ── PATH C: nothing to verify → normal preview ──
-  showPreviewMode('no paid param or stored session');
-})();
-</script>
+<script src="script.js?v=21"></script>
 </body>
 </html>

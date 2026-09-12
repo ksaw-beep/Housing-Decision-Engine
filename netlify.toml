@@ -5,13 +5,7 @@
 [build]
   # No build step needed — everything is plain HTML/CSS/JS
   publish = "."
-  functions = "netlify/functions"
 
-# Redirect /app/verify-session to the Netlify Function for cleaner URLs (optional)
-[[redirects]]
-  from = "/api/verify-session"
-  to   = "/.netlify/functions/verify-session"
-  status = 200
 
 # Cache static assets aggressively, HTML never
 [[headers]]

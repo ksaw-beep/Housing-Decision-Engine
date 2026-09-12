@@ -1,52 +1,5 @@
 /* ===== HOUSING DECISION ENGINE v2 — DECISION ENGINE LOGIC ===== */
 
-// ── ACCESS GATING ─────────────────────────────────────────────────────────
-// paidAccessVerified is set to true by the inline gating script (bottom of
-// index.html) after successful Stripe session verification. Without it, the
-// app computes everything but only displays the free-tier sections.
-//
-// LOCALHOST DEV BYPASS: ?dev=true unlocks paid content ONLY when running
-// on localhost / 127.0.0.1 / file://. On any real domain (Netlify, custom
-// domain) this bypass is dead code and cannot trigger — safe to ship.
-window.paidAccessVerified = (function () {
-  try {
-    const host = window.location.hostname;
-    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '' /* file:// */;
-    if (!isLocal) return false;
-    const p = new URLSearchParams(window.location.search);
-    return p.get('dev') === 'true';
-  } catch (_) {
-    return false;
-  }
-})();
-
-function unlockPaidAccess() {
-  window.paidAccessVerified = true;
-  // Banner sync — whatever path unlocks the content, the "You're viewing the
-  // preview" banner must go away. This is the single source of truth so we
-  // never end up with unlocked content + preview banner visible.
-  const _pv = document.getElementById('previewBanner');
-  if (_pv) _pv.hidden = true;
-  // If results are already showing, re-run to reveal paid sections
-  if (document.getElementById('resultsContent').style.display !== 'none') {
-    calculate();
-  }
-}
-
-function injectUnlockButtons() {
-  const rc = document.getElementById('resultsContent');
-  if (!rc) return;
-  rc.querySelectorAll('.paid-only').forEach(el => {
-    if (!el.querySelector('.paid-unlock-cta')) {
-      const a = document.createElement('a');
-      a.href = 'https://buy.stripe.com/4gMcMYeZr3ZKeNReaafIs00';
-      a.className = 'paid-unlock-cta';
-      a.textContent = '\uD83D\uDD12 Unlock the full analysis \u2014 $19';
-      el.appendChild(a);
-    }
-  });
-}
-
 // ---------- CHART STATE (shared between render and tooltip) ----------
 let chartState = null;
 
@@ -268,6 +221,7 @@ function updateRentalIncomeHelper() {
   if (helper) helper.style.display = rental > 0 ? '' : 'none';
   if (moveOutGroup) moveOutGroup.style.display = rental > 0 ? '' : 'none';
   if (hackRealism) hackRealism.style.display = rental > 0 ? '' : 'none';
+  if ($('rentalUnitsGroup')) $('rentalUnitsGroup').style.display = rental > 0 ? '' : 'none';
   if (rental <= 0 && $('moveOutWarn')) $('moveOutWarn').style.display = 'none';
   const hackSub = $('hackSubtitle');
   if (hackSub) hackSub.style.display = rental > 0 ? 'none' : '';
@@ -397,145 +351,184 @@ function calcLumpSumFV(principal, annualReturn, years) {
 }
 
 // ----------------------------------------------------------------
-// CANONICAL COMPARISON — the SINGLE source of truth for
-// both the Decision Plan and the Net Wealth panel.
+// CANONICAL COMPARISON — the SINGLE source of truth for the Decision
+// Plan, the Net Wealth panel, the chart, break-even and sensitivity.
 //
-// Net Position = Equity/Assets Built - Total Cash Outflow
+// Month-by-month simulation. Each month:
+//   BUY side pays  P&I + mortgage insurance (until it drops off)
+//                  + tax/insurance/maintenance/HOA (inflating yearly)
+//                  − rental income from other units (grows with rent)
+//                  + own rent elsewhere after a house-hack move-out
+//   RENT side pays rent (grows yearly)
+//   Whoever pays LESS that month invests the difference at the
+//   investment return. The renter also invests the cash-to-close on day 0.
 //
-// BUYING:
-//   equity      = downPayment + principalPaid + appreciation
-//   cash out    = downPayment + (monthlyCost * months)
-//   buyNet      = equity - cashOut
-//               = principalPaid + appreciation - (monthlyCost * months)
-//
-// RENTING (and investing the difference):
-//   The renter keeps the down payment and invests it (lump sum at 7%)
-//   If ownership > rent, the renter invests the monthly savings too
-//   cash out    = cumulativeRent
-//   assets      = investmentValue (DP growth + monthly savings growth)
-//   rentNet     = assets - cumulativeRent
-//
-// WEALTH IMPACT = buyNet - rentNet
+// Net position (both sides) = assets − all cash out
+//   buyNet  = (home value − loan balance − selling costs) − cash to close
+//             − cumulative net ownership cost + after-tax investment gains
+//   rentNet = after-tax investment gains − cumulative rent
+//   wealthImpact = buyNet − rentNet   (positive → buying is ahead)
 // ----------------------------------------------------------------
+const DEFAULT_COST_INFLATION = 3;   // %/yr on tax, insurance, maintenance, HOA
+const DEFAULT_INVEST_TAX = 15;      // % tax on investment gains at exit (LTCG)
+const FHA_MIP_MONTHS_10PCT_DOWN = 132; // 11 years when FHA down payment >= 10%
+
 function calcBuyVsRentWealth(params, years) {
   const { homePrice, downPct, rate, term, taxPct, insuranceAnnual, maintPct, hoaMonthly,
           rent, rentGrowthPct, appreciationPct, rentalIncome, creditProfile, loanType,
           closingCostsPct, sellingCostsPct, investReturn, moveOutYear,
-          vacancyPct, expenseRatioPct } = params;
+          vacancyPct, expenseRatioPct, costInflationPct, investTaxPct, rentalUnits } = params;
   const downPayment = homePrice * downPct / 100;
   const closingCosts = homePrice * (closingCostsPct || 0) / 100;
   const cashToClose = downPayment + closingCosts;
   const loanAmount = homePrice - downPayment;
-  const totalOwnership = calcTotalOwnership(homePrice, downPct, rate, term, taxPct, insuranceAnnual, maintPct, hoaMonthly, creditProfile, loanType);
-  const invReturn = investReturn || DEFAULT_INVEST_RETURN;
-  const months = Math.round(years * 12);
+  const months = Math.max(0, Math.round(years * 12));
+  const invReturn = (investReturn == null || isNaN(investReturn)) ? DEFAULT_INVEST_RETURN : investReturn;
+  const rm = invReturn / 100 / 12;
+  const infl = ((costInflationPct == null || isNaN(costInflationPct)) ? DEFAULT_COST_INFLATION : costInflationPct) / 100;
+  const taxDrag = Math.max(0, Math.min(100, (investTaxPct == null || isNaN(investTaxPct)) ? DEFAULT_INVEST_TAX : investTaxPct)) / 100;
+  const units = Math.max(1, Math.round(rentalUnits || 1));
 
-  // Effective rental income after vacancy + operating expenses (house-hack realism).
-  const effRentalIncome = calcEffectiveRental(rentalIncome, vacancyPct, expenseRatioPct);
+  const monthlyPayment = calcMonthlyMortgage(loanAmount, rate, term);
+  const r = rate / 100 / 12;
+  const miMonthly0 = calcMonthlyMI(homePrice, downPct, creditProfile, loanType);
+  const fhaLifeOfLoan = loanType === 'FHA' && downPct < 10;
+  const carry0 = homePrice * taxPct / 100 / 12 + insuranceAnnual / 12 + homePrice * maintPct / 100 / 12 + hoaMonthly;
+  const totalOwnership = monthlyPayment + miMonthly0 + carry0; // month-1 cost (headline figure)
 
-  // House hack transition: after moveOutYear, effective rental income increases by 1.75x
-  const TRANSITION_MULT = 1.75;
+  const effRental0 = calcEffectiveRental(rentalIncome, vacancyPct, expenseRatioPct);
   const moveOutMonth = (moveOutYear && moveOutYear > 0) ? moveOutYear * 12 : Infinity;
+  // After move-out the owner's own unit is rented too. Proxy: it rents like the
+  // average of the other units (gross rental income ÷ number of rented units).
+  const ownerUnitEff = rentalIncome > 0 ? calcEffectiveRental(rentalIncome / units, vacancyPct, expenseRatioPct) : 0;
 
-  // === BUYING SIDE ===
-  const principalPaid = calcPrincipalPaid(loanAmount, rate, term, months);
-  const homeValue = homePrice * Math.pow(1 + appreciationPct / 100, years);
-  const appreciation = homeValue - homePrice;
-  // Selling costs at exit (agent commissions + transaction fees) — deducted from home value
-  const sellingCosts = homeValue * (sellingCostsPct || 0) / 100;
-  const equityGross = downPayment + principalPaid + appreciation;
-  const equity = equityGross - sellingCosts;
+  let balance = loanAmount;
+  let cumulativeOwn = 0, cumulativeRent = 0, cumulativeRentalIncome = 0, cumulativeOwnerRent = 0;
+  let renterPortfolio = cashToClose, renterContrib = cashToClose;
+  let buyerPortfolio = 0, buyerContrib = 0;
+  let miDropMonth = null, totalMI = 0, totalInterest = 0;
 
-  // Cumulative ownership cost — month-by-month when transition is active
-  let cumulativeOwn = 0;
-  if (moveOutMonth < Infinity && effRentalIncome > 0) {
-    for (let mo = 0; mo < months; mo++) {
-      const rentalNow = mo >= moveOutMonth ? effRentalIncome * TRANSITION_MULT : effRentalIncome;
-      cumulativeOwn += Math.max(totalOwnership - rentalNow, 0);
+  for (let mo = 0; mo < months; mo++) {
+    const yr = Math.floor(mo / 12);
+    const inflF = Math.pow(1 + infl, yr);
+    const rentF = Math.pow(1 + rentGrowthPct / 100, yr);
+
+    // Portfolios earn a month of return on the opening balance
+    renterPortfolio *= (1 + rm);
+    buyerPortfolio *= (1 + rm);
+
+    // Mortgage payment (stops once the loan is paid off)
+    let pi = 0;
+    if (balance > 0.005) {
+      const interest = balance * r;
+      const principal = Math.min(monthlyPayment - interest, balance);
+      balance -= principal;
+      pi = interest + principal;
+      totalInterest += interest;
     }
-  } else {
-    const netMonthlyCost = Math.max(totalOwnership - effRentalIncome, 0);
-    cumulativeOwn = netMonthlyCost * months;
+
+    // Mortgage insurance: conventional drops at 80% LTV of purchase price;
+    // FHA lasts 11 years (>=10% down) or the life of the loan (<10% down).
+    let mi = 0;
+    if (miMonthly0 > 0) {
+      const dropped = loanType === 'FHA'
+        ? (!fhaLifeOfLoan && mo >= FHA_MIP_MONTHS_10PCT_DOWN)
+        : (balance / homePrice <= 0.80);
+      if (!dropped) { mi = miMonthly0; totalMI += mi; }
+      else if (miDropMonth == null) miDropMonth = mo + 1;
+    }
+
+    const ownGross = pi + mi + carry0 * inflF;
+    const rentNow = rent * rentF;
+
+    // Rental income (other units), plus own unit after move-out — at which point
+    // the owner also pays rent somewhere, just like the renter does.
+    let rentalNow = effRental0 * rentF;
+    let ownerRent = 0;
+    if (rentalIncome > 0 && mo >= moveOutMonth) {
+      rentalNow += ownerUnitEff * rentF;
+      ownerRent = rentNow;
+    }
+    cumulativeRentalIncome += rentalNow;
+    cumulativeOwnerRent += ownerRent;
+
+    const buyCash = ownGross - rentalNow + ownerRent; // may be negative = positive cash flow
+    cumulativeOwn += buyCash;
+    cumulativeRent += rentNow;
+
+    // Invest the difference — whichever path is cheaper this month
+    const diff = buyCash - rentNow;
+    if (diff > 0) { renterPortfolio += diff; renterContrib += diff; }
+    else if (diff < 0) { buyerPortfolio += -diff; buyerContrib += -diff; }
   }
 
-  // Net Position = Equity Built - Total Cash Outflow (including closing costs)
-  const buyNet = equity - cashToClose - cumulativeOwn;
+  // Buy side at exit
+  const homeValue = homePrice * Math.pow(1 + appreciationPct / 100, months / 12);
+  const appreciation = homeValue - homePrice;
+  const principalPaid = loanAmount - balance;
+  const sellingCosts = homeValue * (sellingCostsPct || 0) / 100;
+  const equityGross = homeValue - balance;          // = downPayment + principalPaid + appreciation
+  const equity = equityGross - sellingCosts;
+  const buyerGainsPre = buyerPortfolio - buyerContrib;
+  const buyerGains = buyerGainsPre * (1 - taxDrag);
+  const buyNet = equity - cashToClose - cumulativeOwn + buyerGains;
 
-  // === RENTING SIDE (invest the difference) ===
-  const cumulativeRent = calcCumulativeRent(rent, rentGrowthPct, years);
-
-  // 1. Renter invests the full cash-to-close (DP + closing costs) as a lump sum
-  const dpInvestmentValue = calcLumpSumFV(cashToClose, invReturn, years);
-
-  // 2. Renter invests monthly savings (ownership cost - rent), if positive
-  // Use first-year pre-transition values for simplicity
-  const netMonthlyCostForSavings = Math.max(totalOwnership - effRentalIncome, 0);
-  const monthlySavings = Math.max(netMonthlyCostForSavings - rent, 0);
-  const savingsInvestmentValue = calcInvestmentFV(monthlySavings, invReturn, years);
-
-  const totalInvestmentValue = dpInvestmentValue + savingsInvestmentValue;
-  // Pure investment gains (subtract the principal contributions to avoid double-counting)
-  const dpGains = dpInvestmentValue - cashToClose;
-  const savingsGains = savingsInvestmentValue - (monthlySavings * months);
-  const investmentGains = dpGains + savingsGains;
-
+  // Rent side at exit
+  const renterGainsPre = renterPortfolio - renterContrib;
+  const investTax = renterGainsPre * taxDrag;
+  const investmentGains = renterGainsPre - investTax;
+  const dpGainsPre = cashToClose * (Math.pow(1 + rm, months) - 1);
+  const savingsGainsPre = Math.max(0, renterGainsPre - dpGainsPre);
   const rentNet = investmentGains - cumulativeRent;
 
-  // Wealth Impact = how much better off buying is vs renting
   const wealthImpact = buyNet - rentNet;
+  const monthlySavings = Math.max(totalOwnership - effRental0 - rent, 0);
 
-  // Guard against NaN / Infinity that would break rendering (Phase 4)
   function safe(v) { return isFinite(v) && !isNaN(v) ? v : 0; }
-
   return {
-    equity: safe(equity), equityGross: safe(equityGross),
+    equity: safe(equity), equityGross: safe(equityGross), appreciation: safe(appreciation),
+    principalPaid: safe(principalPaid), loanBalance: safe(balance),
     sellingCosts: safe(sellingCosts), homeValue: safe(homeValue),
     downPayment: safe(downPayment), closingCosts: safe(closingCosts),
     cashToClose: safe(cashToClose), cumulativeOwn: safe(cumulativeOwn),
-    cumulativeRent: safe(cumulativeRent),
+    cumulativeRent: safe(cumulativeRent), cumulativeRentalIncome: safe(cumulativeRentalIncome),
+    cumulativeOwnerRent: safe(cumulativeOwnerRent),
     buyNet: safe(buyNet), rentNet: safe(rentNet), wealthImpact: safe(wealthImpact),
-    totalOwnership: safe(totalOwnership), effRentalIncome: safe(effRentalIncome),
-    investmentGains: safe(investmentGains), dpGains: safe(dpGains),
-    savingsGains: safe(savingsGains),
-    monthlySavings: safe(monthlySavings), totalInvestmentValue: safe(totalInvestmentValue)
+    totalOwnership: safe(totalOwnership), effRentalIncome: safe(effRental0),
+    investmentGains: safe(investmentGains), investTax: safe(investTax),
+    dpGains: safe(dpGainsPre), savingsGains: safe(savingsGainsPre), // pre-tax; investTax is shown as its own line
+    buyerGains: safe(buyerGains), buyerContrib: safe(buyerContrib),
+    monthlySavings: safe(monthlySavings), totalInvestmentValue: safe(renterPortfolio),
+    miDropMonth, totalMI: safe(totalMI), totalInterest: safe(totalInterest),
   };
 }
 
 // ---------- BREAK-EVEN ANALYSIS ----------
-// Monthly precision: check each month from 1 to 120 (10 years)
-// Break-even = the first month where buying's net position exceeds renting's
+// Scans every month out to max(10 years, the user's horizon). Break-even is the
+// month AFTER the last month in which renting was ahead, so it is sustained
+// through the end of the scan (the curve can be non-monotonic early on).
+function breakEvenScanMonths(params) {
+  const h = Math.max(1, params.timeHorizon || 5);
+  return Math.min(480, Math.max(120, Math.round(h * 12)));
+}
 
 function findBreakEven(params) {
-  // Sample wealthImpact at every month 1-120. Because the curve can be
-  // non-monotonic (month-1 appreciation can briefly outpace closing costs
-  // before being dragged back under), we can't just return the first
-  // month where wealthImpact >= 0 — that could be a transient blip.
-  //
-  // Instead: find the LAST month where wealthImpact < 0, and return the
-  // following month. That guarantees the reported break-even is sustained
-  // through the end of the 10-year horizon.
+  const scanMonths = breakEvenScanMonths(params);
+  const scanYears = scanMonths / 12;
   const impacts = [];
-  for (let mo = 1; mo <= 120; mo++) {
+  for (let mo = 1; mo <= scanMonths; mo++) {
     impacts.push(calcBuyVsRentWealth(params, mo / 12).wealthImpact);
   }
-
-  // If buying is still behind at month 120, no sustained break-even exists.
   if (impacts[impacts.length - 1] < 0) {
-    return { month: null, year: null, found: false };
+    return { month: null, year: null, found: false, scanMonths, scanYears };
   }
-
-  // Walk backwards to find the last negative month.
   let lastNegative = -1;
   for (let i = impacts.length - 1; i >= 0; i--) {
     if (impacts[i] < 0) { lastNegative = i; break; }
   }
-
-  // Sustained crossover is the month right after the last negative sample.
-  // (If lastNegative === -1, buying was positive for all 120 months → month 1.)
-  const crossoverIdx = lastNegative + 1;
-  const mo = crossoverIdx + 1; // 1-indexed month
+  const mo = lastNegative + 2; // 1-indexed month after the last negative sample
   const years = Math.round((mo / 12) * 10) / 10;
-  return { month: mo, year: years, found: true };
+  return { month: mo, year: years, found: true, scanMonths, scanYears };
 }
 
 // ---------- LONG-HORIZON REVERSAL ANALYSIS ----------
@@ -612,343 +605,266 @@ function fmtBreakEven(be) {
 }
 
 // ---------- SENSITIVITY ANALYSIS ----------
-// Binary search for the threshold where the recommendation flips
+// Where does the RECOMMENDATION flip? We search for the input value at which
+// the wealth impact at the user's horizon crosses zero. (Monthly-cost parity is
+// reported separately as context — in expensive markets it often never happens,
+// which is not the same thing as "never buy".)
+function wealthAt(params, overrides) {
+  const p = Object.assign({}, params, overrides);
+  return calcBuyVsRentWealth(p, Math.max(1 / 12, p.timeHorizon || 5)).wealthImpact;
+}
+
+// Bisection on `key` between lo and hi for wealthImpact = 0. Assumes wealth
+// impact is monotonic in the key over the range (true for rate; true for price
+// unless appreciation wildly exceeds the cost of capital).
+function findWealthThreshold(params, key, lo, hi) {
+  const wLo = wealthAt(params, { [key]: lo });
+  const wHi = wealthAt(params, { [key]: hi });
+  if ((wLo >= 0) === (wHi >= 0)) return null; // no crossing in range
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    const w = wealthAt(params, { [key]: mid });
+    if ((w >= 0) === (wLo >= 0)) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
 
 function findRateThreshold(params) {
-  const currentOwnership = calcTotalOwnership(params.homePrice, params.downPct, params.rate,
-    params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType);
-  const buyingIsCheaper = (currentOwnership - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct)) <= params.rent;
-
-  // Check if buying is EVER cheaper, even at 0% interest
+  const buyWinsNow = wealthAt(params, {}) >= 0;
+  const monthlyNow = calcTotalOwnership(params.homePrice, params.downPct, params.rate,
+    params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType)
+    - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct);
+  const buyingIsCheaper = monthlyNow <= params.rent;
+  // Monthly parity rate (context only)
+  let parityRate = null;
   const atZero = calcTotalOwnership(params.homePrice, params.downPct, 0,
-    params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType);
-  const zeroNetCost = atZero - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct);
-  if (zeroNetCost > params.rent) {
-    // Even at 0% rates, ownership costs exceed rent — no monthly-cost threshold exists.
-    // But check how close it is — if the gap is small, equity building can still win.
-    const zeroGap = zeroNetCost - params.rent;
-    const zeroGapPct = zeroGap / params.rent;
-    // Run a wealth break-even at a few rates to find where buying wins on a wealth basis
-    let wealthBreakRate = null;
-    for (const testRate of [3, 4, 5]) {
-      const testParams = Object.assign({}, params, { rate: testRate });
-      const be = findBreakEven(testParams);
-      if (be.found && be.month <= 60) {
-        wealthBreakRate = testRate;
-        break;
-      }
+    params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType)
+    - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct);
+  if (atZero <= params.rent) {
+    let lo = 0, hi = 20;
+    for (let i = 0; i < 30; i++) {
+      const mid = (lo + hi) / 2;
+      const own = calcTotalOwnership(params.homePrice, params.downPct, mid,
+        params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType)
+        - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct);
+      if (own <= params.rent) lo = mid; else hi = mid;
     }
-    return { threshold: null, buyingIsCheaper, noThreshold: true,
-             zeroGap: Math.round(zeroGap), zeroGapPct, zeroCost: Math.round(zeroNetCost),
-             wealthBreakRate };
+    parityRate = Math.round((lo + hi) / 2 * 100) / 100;
   }
-
-  let lo = 0, hi = 15;
-  for (let i = 0; i < 30; i++) {
-    const mid = (lo + hi) / 2;
-    const ownership = calcTotalOwnership(params.homePrice, params.downPct, mid,
-      params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType);
-    const netCost = ownership - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct);
-    if (netCost <= params.rent) {
-      lo = mid;
-    } else {
-      hi = mid;
-    }
+  const t = findWealthThreshold(params, 'rate', 0, 20);
+  if (t == null) {
+    return { threshold: null, noThreshold: true, buyWinsNow, buyingIsCheaper, parityRate,
+             zeroNetCost: Math.round(atZero), zeroGap: Math.round(atZero - params.rent) };
   }
-  const threshold = Math.round((lo + hi) / 2 * 100) / 100;
-  return { threshold, buyingIsCheaper, noThreshold: false };
+  return { threshold: Math.round(t * 100) / 100, noThreshold: false, buyWinsNow, buyingIsCheaper, parityRate,
+           zeroNetCost: Math.round(atZero), zeroGap: Math.round(atZero - params.rent) };
 }
 
 function findPriceThreshold(params) {
-  const currentOwnership = calcTotalOwnership(params.homePrice, params.downPct, params.rate,
-    params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType);
-  const buyingIsCheaper = (currentOwnership - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct)) <= params.rent;
-
-  let lo = 0, hi = params.homePrice * 3;
-  for (let i = 0; i < 30; i++) {
-    const mid = (lo + hi) / 2;
-    const ownership = calcTotalOwnership(mid, params.downPct, params.rate,
-      params.term, params.taxPct, params.insuranceAnnual, params.maintPct, params.hoaMonthly, params.creditProfile, params.loanType);
-    const netCost = ownership - calcEffectiveRental(params.rentalIncome, params.vacancyPct, params.expenseRatioPct);
-    if (netCost <= params.rent) {
-      lo = mid;
-    } else {
-      hi = mid;
-    }
-  }
-  const threshold = Math.round((lo + hi) / 2 / 1000) * 1000; // Round to nearest $1k
-  return { threshold, buyingIsCheaper };
+  const buyWinsNow = wealthAt(params, {}) >= 0;
+  const t = findWealthThreshold(params, 'homePrice', params.homePrice * 0.25, params.homePrice * 3);
+  if (t == null) return { threshold: null, noThreshold: true, buyWinsNow };
+  return { threshold: Math.round(t / 1000) * 1000, noThreshold: false, buyWinsNow };
 }
 
 // ---------- CONFIDENCE SCORING ----------
-
+// How robust is the call to reasonable changes in the inputs? 0–100 → High/Medium/Low.
 function calcConfidence(decision, breakEven, rateThreshold, priceThreshold, params) {
-  // Score from 0-100, mapped to High / Medium / Low
-  // Based on: break-even clarity, threshold distance (direction-aware), wealth magnitude
-  let score = 50; // neutral start
-  const type = decision.type;
-  const isBuyRec = (type === 'buy' || type === 'hack');
-  const wi = Math.abs(decision.wealth5.wealthImpact);
+  let score = 50;
+  const isBuyRec = (decision.type === 'buy' || decision.type === 'hack');
+  const wi = decision.wealth5.wealthImpact;
+  const h = Math.max(1, params.timeHorizon || 5);
 
-  // Break-even clarity
-  if (isBuyRec) {
-    if (breakEven.found && breakEven.month <= 12) score += 15;
-    else if (breakEven.found && breakEven.month <= 36) score += 8;
-    else if (breakEven.found && breakEven.month <= 60) score += 3;
+  // 1. Size of the wealth gap relative to the home price
+  const rel = Math.abs(wi) / Math.max(1, params.homePrice);
+  if (rel > 0.10) score += 18;
+  else if (rel > 0.05) score += 10;
+  else if (rel > 0.025) score += 3;
+  else if (rel > 0.01) score -= 8;
+  else score -= 18;
+
+  // 2. Rate cushion — distance from the rate at which the call flips
+  if (!rateThreshold.noThreshold && rateThreshold.threshold != null) {
+    const dist = Math.abs(params.rate - rateThreshold.threshold);
+    if (dist > 1.5) score += 12;
+    else if (dist > 0.75) score += 6;
+    else if (dist > 0.35) score -= 2;
     else score -= 10;
   } else {
-    if (!breakEven.found) score += 15;
-    else if (breakEven.month > 84) score += 10;
-    else if (breakEven.month > 60) score += 5;
-    else score -= 8; // close call
+    score += 8; // no rate within 0–20% flips it — very robust to rates
   }
 
-  // Rate threshold — direction-aware
-  // "buyingIsCheaper" means monthly ownership < rent at current rate
-  if (!rateThreshold.noThreshold && rateThreshold.threshold != null) {
-    const rateDist = Math.abs(params.rate - rateThreshold.threshold);
-    if (isBuyRec && rateThreshold.buyingIsCheaper) {
-      // Buy rec + monthly cost supports it → cushion = good
-      if (rateDist > 2) score += 12;
-      else if (rateDist > 1) score += 6;
-      else score -= 5;
-    } else if (isBuyRec && !rateThreshold.buyingIsCheaper) {
-      // Buy rec but monthly cost is against it → wealth-driven, lower confidence
-      if (rateDist > 2) score -= 8;
-      else if (rateDist > 1) score -= 4;
-      else score -= 2;
-    } else if (!isBuyRec && !rateThreshold.buyingIsCheaper) {
-      // Rent rec + monthly cost supports it → distance = good
-      if (rateDist > 2) score += 12;
-      else if (rateDist > 1) score += 6;
-      else score -= 5;
-    } else {
-      // Rent rec but monthly cost favors buying — unusual, penalize
-      score -= 5;
-    }
-  } else if (rateThreshold.noThreshold) {
-    if (!isBuyRec) score += 12;
-    else score -= 12;
+  // 3. Price cushion
+  if (!priceThreshold.noThreshold && priceThreshold.threshold != null) {
+    const dist = Math.abs(params.homePrice - priceThreshold.threshold) / params.homePrice;
+    if (dist > 0.15) score += 8;
+    else if (dist > 0.08) score += 4;
+    else if (dist > 0.04) score -= 2;
+    else score -= 8;
+  } else {
+    score += 4;
   }
 
-  // Price threshold — direction-aware
-  if (priceThreshold.threshold != null) {
-    const priceDist = Math.abs(params.homePrice - priceThreshold.threshold) / params.homePrice;
-    if (isBuyRec && priceThreshold.buyingIsCheaper) {
-      if (priceDist > 0.2) score += 8;
-      else if (priceDist > 0.1) score += 4;
-    } else if (!isBuyRec && !priceThreshold.buyingIsCheaper) {
-      if (priceDist > 0.2) score += 8;
-      else if (priceDist > 0.1) score += 4;
-      else score -= 3;
-    } else {
-      // Threshold direction opposes recommendation
-      if (priceDist < 0.1) score -= 5;
-    }
+  // 4. Break-even vs horizon
+  if (isBuyRec) {
+    if (breakEven.found && breakEven.month <= 1) score += 8;
+    else if (breakEven.found && (h - breakEven.year) >= 3) score += 8;
+    else if (breakEven.found && (h - breakEven.year) >= 1) score += 3;
+    else score -= 8;
+  } else {
+    if (!breakEven.found) score += 10;
+    else if ((breakEven.year - h) >= 3) score += 8;
+    else if ((breakEven.year - h) >= 1) score += 3;
+    else score -= 8;
   }
-
-  // Wealth impact magnitude
-  if (wi > 50000) score += 8;
-  else if (wi > 20000) score += 4;
-  else if (wi > 10000) score += 0;
-  else if (wi < 3000) score -= 10;
-  else if (wi < 5000) score -= 5;
 
   score = Math.max(0, Math.min(100, score));
-
   let level, label, explanation;
   if (score >= 62) {
-    level = 'high';
-    label = 'High';
+    level = 'high'; label = 'High';
     explanation = 'The numbers clearly favor this path across multiple assumptions.';
   } else if (score >= 42) {
-    level = 'medium';
-    label = 'Medium';
-    explanation = 'The recommendation holds, but small changes in rates or prices could shift the outcome.';
+    level = 'medium'; label = 'Medium';
+    explanation = 'The recommendation holds, but small changes in rates, prices, or how long you stay could shift the outcome.';
   } else {
-    level = 'low';
-    label = 'Low';
-    explanation = 'This is a close call — the scenarios are nearly equivalent financially.';
+    level = 'low'; label = 'Low';
+    explanation = 'This is a close call — the two paths are nearly equivalent financially.';
   }
-
   return { score, level, label, explanation };
 }
 
 // ---------- RECOMMENDATION ENGINE ----------
-
+// The wealth impact at the USER'S horizon is the primary driver. Monthly cost
+// and break-even timing shape the wording and the "your move" line; they never
+// override the wealth result.
 function generateDecision(params, totalOwnership, netCost, equityHorizon, breakEven) {
   const { rent, rentalIncome, homePrice, rate, investReturn } = params;
   const invReturn = investReturn || DEFAULT_INVEST_RETURN;
-  const h = params.timeHorizon || 5;            // P1: dynamic horizon
+  const h = params.timeHorizon || 5;
+  const yrs = `${h} year${h === 1 ? '' : 's'}`;
   const downPayment = homePrice * params.downPct / 100;
   const cashToClose = downPayment + homePrice * (params.closingCostsPct || 0) / 100;
   const hasHouseHack = rentalIncome > 0;
   const effectiveCost = hasHouseHack ? netCost : totalOwnership;
-  const monthlyDiff = effectiveCost - rent; // Positive = buying costs more
+  const monthlyDiff = effectiveCost - rent; // Positive = buying costs more per month
   const annualDiff = monthlyDiff * 12;
-  // wealth5 name preserved for back-compat with consumer code (dp metric, scenario compare),
-  // but it is now the wealth snapshot at the USER'S HORIZON.
-  const wealth5 = calcBuyVsRentWealth(params, h);
-  const wealth10 = calcBuyVsRentWealth(params, 10);
-  // equity5yr alias for template strings below (same value as equityHorizon passed in)
-  const equity5yr = equityHorizon;
+  const wealth5 = calcBuyVsRentWealth(params, h); // snapshot at the user's horizon
+  const wi = wealth5.wealthImpact;
+  const wiAbs = Math.abs(wi);
+  const equityNet = wealth5.equity;
+  const costLabel = hasHouseHack ? `${fmt(effectiveCost)}/mo after rental income` : `${fmt(effectiveCost)}/mo`;
+  const beLabel = breakEven.found ? fmtBreakEven(breakEven) : null;
+  const minStay = breakEven.found ? Math.max(1, Math.ceil(breakEven.year)) : null;
+  const closeCall = wiAbs < Math.max(5000, 0.015 * homePrice);
+  const scanYrs = Math.round(breakEven.scanYears || 10);
 
   let verdict, reason, action, type, horizon;
 
-  if (hasHouseHack && netCost < rent && netCost < totalOwnership) {
-    type = 'hack';
-    horizon = 'Buy now — hold at least 3 years';
-    verdict = 'House hacking significantly improves your financial position.';
-    reason = `With rental income offsetting your costs, your effective monthly payment drops to ${fmt(netCost)} — ` +
-      `that's ${fmt(rent - netCost)} less than you'd pay in rent each month. ` +
-      `You're essentially getting paid to build equity. ` +
-      `Over ${h} years, you'd accumulate ~${fmt(equity5yr)} in equity while spending less than a renter.`;
-    if (netCost <= 0) {
-      action = `Next steps: (1) Verify the rental income is realistic for the area — talk to a property manager or check comps. ` +
-        `(2) Set aside 3 months of gross rent as a vacancy reserve. ` +
-        `(3) Budget ${fmt(homePrice * params.maintPct / 100 / 12)}/mo for maintenance. ` +
-        `Your rental income fully covers your cost — this is a powerful wealth-building position.`;
+  if (wi >= 0) {
+    // ---- BUYING IS AHEAD AT THE HORIZON ----
+    type = hasHouseHack ? 'hack' : 'buy';
+    const dayOne = breakEven.found && breakEven.month <= 1;
+
+    if (monthlyDiff <= 0) {
+      horizon = dayOne ? 'Buy now — ahead from day one' : `Buy — the math works if you stay ${minStay}+ years`;
+      verdict = hasHouseHack
+        ? 'House hacking makes this a strong buy — cheaper than renting and ahead on wealth.'
+        : 'Buying is financially favorable under your current assumptions.';
+      reason = `${hasHouseHack ? 'After rental income, owning' : 'Owning'} costs ${costLabel} — ${fmt(-monthlyDiff)} less than renting at ${fmt(rent)}/mo. ` +
+        `On top of that, you'd build ~${fmt(equityNet)} in equity (net of selling costs) over ${yrs}. ` +
+        `Even after a renter invests the ${fmt(cashToClose)} cash-to-close at ${invReturn}%, buying finishes ~${fmt(wiAbs)} ahead.`;
+    } else if (closeCall) {
+      horizon = `Lean buy — only if you'll stay ${minStay}+ years`;
+      verdict = 'Buying edges out renting on total wealth, but it\'s close.';
+      reason = `You'd pay ${fmt(monthlyDiff)}/mo more to own (${costLabel} vs ${fmt(rent)} rent). ` +
+        `Equity and appreciation claw that back by ${beLabel}, leaving buying only ~${fmt(wiAbs)} ahead after ${yrs}. ` +
+        `A small change in rate, price, or how long you stay could flip this.`;
     } else {
-      action = `Next steps: (1) Verify rental income with local comps — be conservative by 10-15%. ` +
-        `(2) Budget a vacancy reserve of 1-2 months gross rent. ` +
-        `(3) Get pre-approved at or below ${rate}% to lock in this math. ` +
-        `This is one of the strongest paths to building wealth through real estate.`;
+      horizon = dayOne ? 'Buy — ahead from day one' : `Buy if you'll stay ${minStay}+ years`;
+      verdict = 'Buying costs more monthly, but the wealth-building makes up for it.';
+      reason = `You'd pay ${fmt(monthlyDiff)}/mo more than renting (${costLabel} vs ${fmt(rent)}). ` +
+        `By ${beLabel}, buying overtakes renting in total wealth — even with the renter investing the difference at ${invReturn}%. ` +
+        `After ${yrs}, buying puts you ~${fmt(wiAbs)} ahead. The monthly premium is forced savings into an appreciating asset.`;
     }
-  } else if (totalOwnership < rent * 0.9) {
-    // Buying is clearly cheaper (10%+ less than rent)
-    type = 'buy';
-    const saving = rent - totalOwnership;
-    horizon = 'Buy now — the math works from day one';
-    verdict = 'Buying is financially favorable under your current assumptions.';
-    reason = `Your total ownership cost of ${fmt(totalOwnership)}/mo is ${fmt(saving)} less than renting at ${fmt(rent)}/mo. ` +
-      `That's ${fmt(saving * 12)} in annual savings, plus you'd build ~${fmt(equity5yr)} in equity over ${h} years. ` +
-      `Even accounting for a renter investing the ${fmt(cashToClose)} cash-to-close at ${invReturn}%, buying comes out ahead.`;
-    action = `Next steps: (1) Get pre-approved for a mortgage at or below ${rate}%. ` +
-      `(2) Target properties at or below ${fmt(homePrice)}. ` +
-      `(3) Build up ${fmt(Math.round(totalOwnership * 4))} in emergency reserves (3-6 months of housing expenses) before closing. ` +
-      `The numbers clearly support buying at these terms.`;
-  } else if (totalOwnership < rent && wealth5.wealthImpact < -10000) {
-    // Edge: monthly is cheaper, but the cash you'd tie up earns more invested
-    // (typical of high down payment in a low-appreciation market). Don't quietly
-    // tell the user "Buy" — the Wealth panel would directly contradict it.
+
+    if (hasHouseHack) {
+      action = `Next steps: (1) Verify the rental income with local comps and a property manager — be conservative by 10–15%. ` +
+        `(2) Set aside 2–3 months of gross rent as a vacancy and repair reserve. ` +
+        `(3) Get pre-approved at or below ${rate}%; ask the lender how much rental income they'll count toward qualifying (typically 75%). ` +
+        (breakEven.found && breakEven.month > 1 ? `(4) Plan to hold at least ${minStay} years — selling before ${beLabel} hands the lead back to renting.` : `(4) This is one of the strongest wealth-building positions in real estate — the numbers hold from day one.`);
+    } else if (monthlyDiff <= 0) {
+      action = `Next steps: (1) Get pre-approved at or below ${rate}%. (2) Target properties at or below ${fmt(homePrice)}. ` +
+        `(3) Keep ${fmt(Math.round(totalOwnership * 4))} in reserves (3–6 months of housing costs) after closing. ` +
+        (breakEven.found && breakEven.month > 1 ? `(4) Selling costs mean you still need to stay past ${beLabel} for buying to win.` : `(4) The numbers support buying at these terms.`);
+    } else {
+      action = `Next steps: (1) Be honest about how long you'll stay — buying only wins if you hold past ${beLabel}. ` +
+        `(2) Budget for the extra ${fmt(monthlyDiff)}/mo versus renting. ` +
+        `(3) Get pre-approved soon — each 0.25% of rate moves the break-even. ` +
+        `(4) If there's a real chance you'd move within ${minStay} years, renting preserves flexibility and avoids closing and selling costs.`;
+    }
+  } else if (monthlyDiff <= 0) {
+    // ---- CHEAPER MONTHLY, BUT BEHIND ON WEALTH (large down payment / weak appreciation) ----
+    const decisive = wiAbs >= 0.05 * homePrice;
+    type = decisive ? 'rent' : 'lean-rent';
+    horizon = breakEven.found ? `${decisive ? 'Rent' : 'Lean rent'} — buy only if you'll stay ${minStay}+ years` : `${decisive ? 'Rent' : 'Lean rent'} — your cash earns more invested`;
+    verdict = decisive
+      ? 'Buying is cheaper monthly, but renting + investing wins clearly on total wealth.'
+      : 'Buying is cheaper monthly, but renting + investing wins on total wealth.';
+    reason = `${hasHouseHack ? 'After rental income, owning' : 'Owning'} costs ${costLabel} — less than ${fmt(rent)} rent. ` +
+      `But the ${fmt(cashToClose)} you'd tie up at closing earns more invested at ${invReturn}% than the home returns after selling costs, ` +
+      `so after ${yrs} you'd be ~${fmt(wiAbs)} behind by buying` +
+      (breakEven.found ? `. Buying only pulls ahead if you stay past ${beLabel}.` : `, and it doesn't catch up within ${scanYrs} years.`);
+    action = `Next steps: (1) If you value a lower monthly payment and stability over total wealth, buying still works — just know the trade. ` +
+      `(2) To maximize wealth, invest the ${fmt(cashToClose)} and keep renting. ` +
+      `(3) Re-run with a smaller down payment (keeps more cash invested) or a longer horizon to see what tips it back to buying.`;
+  } else if (closeCall || (breakEven.found && breakEven.year <= h + 2)) {
+    // ---- CLOSE CALL: renting is ahead at the horizon, but not by much / break-even is near ----
     type = 'lean-rent';
-    horizon = 'Lean rent — your money does more invested than tied up in equity';
-    verdict = 'Buying is cheaper monthly, but renting + investing wins on total wealth.';
-    reason = `Your ownership cost (${fmt(totalOwnership)}/mo) is slightly less than rent (${fmt(rent)}/mo), ` +
-      `so the monthly side favors buying. But the cash you'd tie up at closing (${fmt(cashToClose)}) earns more invested at ${invReturn}% ` +
-      `than the home appreciates. After ${h} year${h === 1 ? '' : 's'}, you'd be ~${fmt(Math.abs(wealth5.wealthImpact))} behind by buying — ` +
-      `even with the lower monthly payment.`;
-    action = `Next steps: (1) If you value low monthly cost over total wealth (e.g., for cash-flow stability or lifestyle), buying still works. ` +
-      `(2) If you want to maximize wealth, invest the ${fmt(cashToClose)} you'd put into closing in a diversified index fund and keep renting. ` +
-      `(3) Run the analysis again with higher appreciation (5%+) or a longer horizon to see what would tip the math back to buying.`;
-  } else if (totalOwnership < rent) {
-    // Buying is slightly cheaper AND wealth analysis doesn't contradict
-    type = 'buy';
-    horizon = 'Buy within the next 12 months';
-    verdict = 'Buying is financially favorable under your current assumptions.';
-    reason = `Ownership at ${fmt(totalOwnership)}/mo is slightly less than renting at ${fmt(rent)}/mo, ` +
-      `saving you ${fmt((rent - totalOwnership) * 12)} per year. The real advantage is equity — ` +
-      `you'd build ~${fmt(equity5yr)} over ${h} years. Even after accounting for renter investment returns at ${invReturn}%, buying pulls ahead.`;
-    action = `Next steps: (1) Get pre-approved — even a 0.25% rate increase could erode this advantage. ` +
-      `(2) Ensure you have ${fmt(cashToClose)} for cash-to-close (down payment + closing costs). ` +
-      `(3) Build 3-6 months of housing expenses as emergency reserves. ` +
-      `The margin is modest, so locking in soon is important.`;
-  } else if (totalOwnership <= rent * 1.15 && breakEven.found && breakEven.year <= 5) {
-    // Buying costs more monthly but breaks even within 5 years
-    type = 'buy';
-    const minStay = Math.ceil(breakEven.year);
-    horizon = `Buy if you'll stay ${minStay}+ years`;
-    verdict = 'Buying costs more monthly, but the wealth-building makes up for it.';
-    reason = `You'd pay ${fmt(monthlyDiff)} more per month than renting. ` +
-      `However, by ${fmtBreakEven(breakEven)}, buying overtakes renting in total financial value — even accounting for ${invReturn}% investment returns. ` +
-      `After ${h} year${h === 1 ? '' : 's'}, your net wealth advantage from buying is ~${fmt(wealth5.wealthImpact)}. ` +
-      `The short-term premium funds long-term wealth.`;
-    action = `Next steps: (1) Honestly assess how long you'll stay — buying only wins if you hold past the ${fmtBreakEven(breakEven)} break-even. ` +
-      `(2) Budget for the extra ${fmt(monthlyDiff)}/mo compared to renting. ` +
-      `(3) If there's a realistic chance you'd move within ${minStay} years, renting preserves flexibility and avoids closing costs.`;
-  } else if (breakEven.found && breakEven.year <= 3 && wealth5.wealthImpact > 0) {
-    // Buying costs more monthly but wealth effect kicks in fast
-    type = 'buy';
-    horizon = 'Buy if you\'ll stay 3+ years';
-    verdict = 'Buying costs more monthly, but the wealth-building makes it worthwhile.';
-    reason = `You'd pay ${fmt(monthlyDiff)} more per month than renting. ` +
-      `However, the equity and appreciation gains are strong — by ${fmtBreakEven(breakEven)}, buying already overtakes renting even after ${invReturn}% investment returns. ` +
-      `After ${h} years, your net wealth advantage from buying is ~${fmt(wealth5.wealthImpact)}. ` +
-      `The higher monthly cost is effectively forced savings into an appreciating asset.`;
-    action = `Next steps: (1) Confirm you plan to stay at least 3 years. ` +
-      `(2) The monthly premium of ${fmt(monthlyDiff)} is the cost of building ${fmt(equity5yr)} in equity over ${h} years. ` +
-      `(3) Get pre-approved and move quickly — rate increases could push the break-even out further.`;
-  } else if (breakEven.found && wealth5.wealthImpact > 0 &&
-             (breakEven.year <= 5 || (breakEven.year <= 7 && breakEven.year <= h - 1))) {
-    // Moderate break-even, still net positive at user's horizon.
-    // Two ways to qualify:
-    //   (a) BE within 5 years (the original threshold), OR
-    //   (b) BE within 7 years AND the user's horizon clears it by 1+ years
-    //       (so a 7y-horizon buyer with BE at 5.6y still gets BUY-MEDIUM,
-    //        not LEAN-RENT — they'll be past break-even by the time they leave).
-    type = 'buy';
-    const minStay = Math.ceil(breakEven.year);
-    horizon = `Buy if you'll stay ${minStay}+ years`;
-    verdict = 'Buying costs more monthly, but the long-term wealth effect favors ownership.';
-    reason = `You'd pay ${fmt(monthlyDiff)} more per month (${fmt(totalOwnership)} vs ${fmt(rent)} rent). ` +
-      `By ${fmtBreakEven(breakEven)}, buying overtakes renting in total financial value, including ${invReturn}% renter investment returns. ` +
-      `After ${h} years, your net wealth advantage from buying is ~${fmt(wealth5.wealthImpact)}.`;
-    action = `Next steps: (1) This is a medium-confidence buy — it works if you stay ${minStay}+ years. ` +
-      `(2) If there's any chance you'd relocate sooner, renting preserves flexibility and avoids the monthly premium. ` +
-      `(3) Consider increasing your down payment to reduce the monthly gap.`;
-  } else if (breakEven.found && breakEven.year <= 7) {
-    // Longer break-even — close call
-    type = 'lean-rent';
-    horizon = 'Rent for the next 1-2 years, then reassess';
-    verdict = 'It\'s a close call — lean toward renting and investing unless you plan to stay 5+ years.';
-    reason = `Buying would cost ${fmt(monthlyDiff)} more per month (${fmt(totalOwnership)} vs ${fmt(rent)} rent). ` +
-      `You'd break even around ${fmtBreakEven(breakEven)}, even after accounting for ${invReturn}% investment returns a renter could earn. ` +
-      `If you're confident you'll stay long-term, buying builds wealth. ` +
-      `If there's uncertainty, renting and investing the ${fmt(monthlyDiff)}/mo difference is the smarter play.`;
-    action = `Next steps: (1) Rent for now and auto-invest ${fmt(monthlyDiff)}/mo into a broad market index fund. ` +
-      `(2) Also invest your ${fmt(cashToClose)} cash-to-close savings at ${invReturn}%. ` +
-      `(3) Revisit this analysis in 12-18 months — if rates drop 0.5-1% or you find a lower-priced property, the math can shift significantly. ` +
-      `(4) Consider saving toward a 20%+ down payment to reduce monthly costs.`;
-  } else if (breakEven.found && breakEven.year <= 10) {
-    // Long break-even
+    horizon = breakEven.found ? `Rent unless you'll stay ${minStay}+ years` : 'Lean rent — reassess in 12 months';
+    verdict = breakEven.found
+      ? `It's a close call — buying wins only if you stay past ${beLabel}.`
+      : 'It\'s a close call — lean toward renting and investing.';
+    reason = `Buying costs ${fmt(monthlyDiff)}/mo more (${costLabel} vs ${fmt(rent)} rent). ` +
+      (breakEven.found
+        ? `Buying overtakes renting at ${beLabel} — ${(breakEven.year - h).toFixed(1)} year${breakEven.year - h === 1 ? '' : 's'} past your ${yrs} plan. `
+        : `Buying doesn't catch up within ${scanYrs} years under these inputs. `) +
+      `If you sell on schedule, renting and investing leaves you ~${fmt(wiAbs)} ahead. If you're confident you'll stay longer, buying builds wealth.`;
+    action = `Next steps: (1) Decide how long you'll really stay — that's the whole decision here. ` +
+      `(2) If renting, auto-invest the ${fmt(monthlyDiff)}/mo difference and the ${fmt(cashToClose)} you'd have spent at closing. ` +
+      `(3) A lower price, a rate drop of ~0.5%, or a longer stay would tip this toward buying — re-run before you sign either way.`;
+  } else if (breakEven.found) {
+    // ---- RENT: buying eventually wins, but far beyond the user's plan ----
     type = 'rent';
-    horizon = 'Rent for the next 2-3 years, then reassess';
-    const investValue5 = calcInvestmentFV(monthlyDiff, invReturn, h);
+    horizon = 'Rent for now — reassess in 12–18 months';
+    const investValue = calcInvestmentFV(monthlyDiff, invReturn, h);
     verdict = 'Renting and investing the difference is the stronger financial move for now.';
-    reason = `Buying would cost ${fmt(monthlyDiff)} more per month — that's ${fmt(annualDiff)} extra per year. ` +
-      `Buying doesn't overtake renting until around ${fmtBreakEven(breakEven)}, which is a long commitment. ` +
-      `Investing the ${fmt(monthlyDiff)}/mo difference at ${invReturn}% would grow to ~${fmt(investValue5)} over ${h} years — ` +
-      `a concrete alternative to home equity.`;
-    action = `Next steps: (1) Invest your ${fmt(downPayment)} in a diversified index fund (e.g., total market or S&P 500). ` +
-      `(2) Set up automatic monthly investments of ${fmt(monthlyDiff)} (the cost difference). ` +
-      `(3) Set a calendar reminder to re-run this analysis in 12 months when rates and prices may have shifted. ` +
-      `(4) Watch for rate drops below ${rate - 1}% as a signal to reassess.`;
+    reason = `Buying would cost ${fmt(monthlyDiff)}/mo more — ${fmt(annualDiff)} per year. ` +
+      `It doesn't overtake renting until ${beLabel}, well past your ${yrs} plan, so you'd finish ~${fmt(wiAbs)} behind. ` +
+      `Investing the ${fmt(monthlyDiff)}/mo difference at ${invReturn}% would grow to ~${fmt(investValue)} over ${yrs} — a concrete alternative to home equity.`;
+    action = `Next steps: (1) Invest your ${fmt(cashToClose)} in a diversified index fund. ` +
+      `(2) Set up automatic monthly investments of ${fmt(monthlyDiff)}. ` +
+      `(3) Re-run this in 12 months — rates, prices, and your horizon can all shift. ` +
+      `(4) If your plans firm up to ${minStay}+ years, buying starts to make sense.`;
   } else {
-    // Buying never breaks even within 10 years
+    // ---- RENT: buying never catches up in the scan window ----
     type = 'rent';
-    horizon = `Rent for the next ${h} year${h===1?'':'s'}, then reassess`;
-    const investValue5 = calcInvestmentFV(monthlyDiff, invReturn, h);
+    horizon = 'Rent for now — reassess in 12–18 months';
+    const investValue = calcInvestmentFV(monthlyDiff, invReturn, h);
     verdict = 'Renting and investing is clearly the stronger financial path right now.';
-    reason = `At ${fmt(totalOwnership)}/mo vs ${fmt(rent)}/mo rent, buying would cost you ${fmt(annualDiff)} more per year. ` +
-      `Even after ${wealth10.wealthImpact >= 0 ? '10 years' : 'a full decade'}, buying does not overtake renting and investing at ${invReturn}%. ` +
-      `Investing ${fmt(monthlyDiff)}/mo at ${invReturn}% would grow to ~${fmt(investValue5)} over ${h} years alone.`;
+    reason = `At ${costLabel} vs ${fmt(rent)}/mo rent, buying would cost you ${fmt(annualDiff)} more per year, ` +
+      `and it never overtakes renting-and-investing within ${scanYrs} years under these inputs — after ${yrs} you'd be ~${fmt(wiAbs)} behind. ` +
+      `Investing ${fmt(monthlyDiff)}/mo at ${invReturn}% would grow to ~${fmt(investValue)} over ${yrs}.`;
     const rt = findRateThreshold(params);
-    if (rt.noThreshold && rt.wealthBreakRate != null) {
-      action = `Next steps: (1) Invest aggressively — put your ${fmt(cashToClose)} (what you'd spend on cash-to-close) into a diversified index fund today. ` +
-        `(2) Auto-invest ${fmt(monthlyDiff)}/mo (the ownership premium you're avoiding). ` +
-        `(3) At lower rates (~${rt.wealthBreakRate}%), buying would win on a total-wealth basis despite costing slightly more monthly. Watch for rate drops. ` +
-        `(4) Alternatively, a larger down payment or lower-priced property changes the math. Reassess in 12-18 months.`;
-    } else if (rt.noThreshold) {
-      action = `Next steps: (1) Invest aggressively — put your ${fmt(cashToClose)} (what you'd spend on cash-to-close) into a diversified index fund today. ` +
-        `(2) Auto-invest ${fmt(monthlyDiff)}/mo (the ownership premium you're avoiding). ` +
-        `(3) At this price point, even 0% rates won't make buying cheaper. Focus on lower-priced properties or house hacking to change the equation. ` +
-        `(4) Reassess in 12-18 months if the market corrects.`;
-    } else {
-      action = `Next steps: (1) Invest aggressively — put your ${fmt(cashToClose)} (what you'd spend on cash-to-close) into a diversified index fund today. ` +
-        `(2) Auto-invest ${fmt(monthlyDiff)}/mo (the ownership premium you're avoiding). ` +
-        `(3) Watch for rates below ${rt.threshold}% or a meaningful price correction — that's when this equation changes. ` +
-        `(4) Reassess in 12-18 months or when market conditions shift.`;
-    }
+    const pt = findPriceThreshold(params);
+    const levers = [];
+    if (!rt.noThreshold && rt.threshold != null && rt.threshold < rate) levers.push(`rates near ${rt.threshold}%`);
+    if (!pt.noThreshold && pt.threshold != null && pt.threshold < homePrice) levers.push(`a price around ${fmt(pt.threshold)}`);
+    action = `Next steps: (1) Invest the ${fmt(cashToClose)} you'd spend at closing in a diversified index fund today. ` +
+      `(2) Auto-invest the ${fmt(monthlyDiff)}/mo premium you're avoiding. ` +
+      (levers.length
+        ? `(3) The call flips at ${levers.join(' or ')} — watch for those, or look at ${hasHouseHack ? 'higher rental income' : 'multi-family properties with rental income'}. `
+        : `(3) At this price-to-rent ratio, even large rate drops don't fix it — look at lower-priced homes or ${hasHouseHack ? 'higher rental income' : 'multi-family properties with rental income'}. `) +
+      `(4) Reassess in 12–18 months.`;
   }
 
   return { verdict, reason, action, type, horizon, monthlyDiff, annualDiff, wealth5 };
@@ -971,9 +887,10 @@ function renderWealthChart(params, breakEven) {
   const W = rect.width;
   const H = rect.height;
 
-  // Generate year-by-year data (Year 0–10) using the canonical formula
+  // Generate year-by-year data (Year 0 → max(10, horizon)) using the canonical formula
+  const maxYr = Math.max(10, Math.ceil(params.timeHorizon || 5));
   const years = [];
-  for (let yr = 0; yr <= 10; yr++) {
+  for (let yr = 0; yr <= maxYr; yr++) {
     const w = calcBuyVsRentWealth(params, yr);
     years.push({ yr, buyNet: w.buyNet, rentNet: w.rentNet, diff: w.wealthImpact });
   }
@@ -991,7 +908,7 @@ function renderWealthChart(params, breakEven) {
   minVal -= range * 0.08;
   maxVal += range * 0.08;
 
-  function xPos(yr) { return pad.left + (yr / 10) * chartW; }
+  function xPos(yr) { return pad.left + (yr / maxYr) * chartW; }
   function yPos(val) { return pad.top + (1 - (val - minVal) / (maxVal - minVal)) * chartH; }
 
   // Clear
@@ -1018,9 +935,10 @@ function renderWealthChart(params, breakEven) {
 
   // X-axis labels
   ctx.textAlign = 'center';
-  for (let yr = 0; yr <= 10; yr++) {
+  const labelEvery = maxYr > 20 ? 5 : (maxYr > 12 ? 2 : 1);
+  for (let yr = 0; yr <= maxYr; yr++) {
     const x = xPos(yr);
-    ctx.fillText('Yr ' + yr, x, H - pad.bottom + 20);
+    if (yr % labelEvery === 0 || yr === maxYr) ctx.fillText('Yr ' + yr, x, H - pad.bottom + 20);
     // Tick
     ctx.beginPath();
     ctx.moveTo(x, pad.top);
@@ -1063,21 +981,21 @@ function renderWealthChart(params, breakEven) {
     const y = yPos(d.buyNet);
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   });
-  ctx.lineTo(xPos(10), yPos(years[10].rentNet));
-  for (let i = 10; i >= 0; i--) {
+  ctx.lineTo(xPos(maxYr), yPos(years[maxYr].rentNet));
+  for (let i = maxYr; i >= 0; i--) {
     ctx.lineTo(xPos(years[i].yr), yPos(years[i].rentNet));
   }
   ctx.closePath();
   // Fill green where buy > rent, red where rent > buy (simplified: single fill based on endpoint)
-  const endDiff = years[10].diff;
+  const endDiff = years[maxYr].diff;
   ctx.fillStyle = endDiff >= 0 ? 'rgba(22,128,61,0.06)' : 'rgba(59,130,246,0.06)';
   ctx.fill();
 
   drawLine(years, 'rentNet', '#3b82f6');
   drawLine(years, 'buyNet', '#16803d');
 
-  // Dots at Year 5 and Year 10
-  [5, 10].forEach(yr => {
+  // Dots at Year 5 and the last year
+  [5, maxYr].forEach(yr => {
     const d = years[yr];
     // Buy dot
     ctx.beginPath();
@@ -1098,7 +1016,7 @@ function renderWealthChart(params, breakEven) {
   });
 
   // Break-even marker
-  if (breakEven.found && breakEven.year <= 10) {
+  if (breakEven.found && breakEven.year <= maxYr) {
     const beX = xPos(breakEven.year);
     ctx.strokeStyle = '#8b1c2e';
     ctx.lineWidth = 1.5;
@@ -1118,7 +1036,7 @@ function renderWealthChart(params, breakEven) {
 
   // House hack transition marker
   const moveOutYr = params.moveOutYear || 0;
-  if (moveOutYr > 0 && moveOutYr <= 10 && params.rentalIncome > 0) {
+  if (moveOutYr > 0 && moveOutYr <= maxYr && params.rentalIncome > 0) {
     const txX = xPos(moveOutYr);
     ctx.strokeStyle = '#b45309';
     ctx.lineWidth = 1.5;
@@ -1137,17 +1055,17 @@ function renderWealthChart(params, breakEven) {
   // Callout pills
   const callouts = $('chartCallouts');
   const y5 = years[5];
-  const y10 = years[10];
+  const y10 = years[maxYr];
   const diffClass5 = y5.diff >= 0 ? 'pos' : 'neg';
   const diffClass10 = y10.diff >= 0 ? 'pos' : 'neg';
   callouts.innerHTML =
     `<span class="chart-callout"><span class="cc-label">Year 5:</span> <span class="cc-value ${diffClass5}">${fmtSigned(y5.diff)}</span></span>` +
-    `<span class="chart-callout"><span class="cc-label">Year 10:</span> <span class="cc-value ${diffClass10}">${fmtSigned(y10.diff)}</span></span>`;
+    `<span class="chart-callout"><span class="cc-label">Year ${maxYr}:</span> <span class="cc-value ${diffClass10}">${fmtSigned(y10.diff)}</span></span>`;
 
   // Insight text
   const insight = $('chartInsight');
   const parts = [];
-  if (breakEven.found && breakEven.year <= 10) {
+  if (breakEven.found && breakEven.year <= maxYr) {
     if (breakEven.month <= 6) {
       parts.push('Buying pulls ahead almost immediately and the gap widens every year.');
     } else if (breakEven.month <= 12) {
@@ -1156,17 +1074,17 @@ function renderWealthChart(params, breakEven) {
       parts.push(`Buying overtakes renting at year ${breakEven.year}. If you sell before then, renting would have been the better financial outcome.`);
     }
   } else {
-    parts.push('Renting and investing the difference stays ahead for the full 10-year window under these assumptions.');
+    parts.push(`Renting and investing the difference stays ahead for the full ${maxYr}-year window under these assumptions.`);
   }
   if (y10.diff >= 0) {
-    parts.push(`By year 10, buying puts you ~${fmt(y10.diff)} ahead of renting.`);
+    parts.push(`By year ${maxYr}, buying puts you ~${fmt(y10.diff)} ahead of renting.`);
   } else {
-    parts.push(`By year 10, renting still keeps you ~${fmt(Math.abs(y10.diff))} ahead.`);
+    parts.push(`By year ${maxYr}, renting still keeps you ~${fmt(Math.abs(y10.diff))} ahead.`);
   }
   insight.textContent = parts.join(' ');
 
   // Store chart state for tooltip access
-  chartState = { years, xPos, yPos, pad, W, H };
+  chartState = { years, xPos, yPos, pad, W, H, maxYr };
 }
 
 // ---------- CHART TOOLTIP ----------
@@ -1178,14 +1096,14 @@ function renderWealthChart(params, breakEven) {
 
   canvas.addEventListener('mousemove', function(e) {
     if (!chartState) return;
-    const { years, xPos, pad, W } = chartState;
+    const { years, xPos, pad, W, maxYr } = chartState;
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
 
     // Find nearest year
     let nearest = 0;
     let minDist = Infinity;
-    for (let yr = 0; yr <= 10; yr++) {
+    for (let yr = 0; yr <= maxYr; yr++) {
       const dist = Math.abs(mouseX - xPos(yr));
       if (dist < minDist) { minDist = dist; nearest = yr; }
     }
@@ -1260,10 +1178,13 @@ function calculate() {
     closingCostsPct: num('closingCostsPct'),
     sellingCostsPct: num('sellingCostsPct'),
     investReturn: num('investReturn') || DEFAULT_INVEST_RETURN,
-    timeHorizon: Math.max(num('timeHorizon') >= 0 ? num('timeHorizon') : 5, 1/12),
+    timeHorizon: Math.max(1, Math.round(num('timeHorizon')) || 5),
     moveOutYear: Math.min(parseInt($('moveOutYear').value) || 0, num('timeHorizon') || 5),
     annualIncome: num('annualIncome'),
     monthlyDebt: num('monthlyDebt'),
+    costInflationPct: $('costInflationPct') ? num('costInflationPct') : DEFAULT_COST_INFLATION,
+    investTaxPct: $('investTaxPct') ? num('investTaxPct') : DEFAULT_INVEST_TAX,
+    rentalUnits: $('rentalUnits') ? Math.max(1, num('rentalUnits') || 1) : 1,
   };
 
   const { homePrice, downPct, rate, term, taxPct, insuranceAnnual, maintPct, hoaMonthly,
@@ -1288,10 +1209,10 @@ function calculate() {
   // Horizon-based projections (P1 — dynamic time horizon)
   const horizonMonths = timeHorizon * 12;
   const totalRentHorizon = calcCumulativeRent(rent, rentGrowthPct, timeHorizon);
-  const totalOwnHorizon = netCost * horizonMonths;
-  const principalPaid = calcPrincipalPaid(loanAmount, rate, term, horizonMonths);
-  const homeValueHorizon = homePrice * Math.pow(1 + appreciationPct / 100, timeHorizon);
-  const equityHorizon = downPayment + principalPaid + (homeValueHorizon - homePrice);
+  const horizonSim = calcBuyVsRentWealth(params, timeHorizon);
+  const totalOwnHorizon = horizonSim.cumulativeOwn;   // net of rental income, incl. inflation + MI drop-off
+  const homeValueHorizon = horizonSim.homeValue;
+  const equityHorizon = horizonSim.equityGross;
 
   // Advanced analyses
   const breakEven = findBreakEven(params);
@@ -1305,20 +1226,6 @@ function calculate() {
   $('resultsPlaceholder').style.display = 'none';
   $('resultsContent').style.display = 'block';
 
-  // Apply or remove paid-content lock based on access verification
-  const rc = $('resultsContent');
-  if (window.paidAccessVerified) {
-    rc.classList.remove('access-locked');
-  } else {
-    rc.classList.add('access-locked');
-  }
-
-  // Share button only available to paid users (share links replay inputs,
-  // and unpaid viewers would just hit the same paywall anyway).
-  const shareBtn = $('shareAnalysisBtn');
-  if (shareBtn) {
-    shareBtn.hidden = !window.paidAccessVerified;
-  }
 
   // === ANALYSIS STATUS BANNER (Phase 2) ===
   // Double-RAF ensures the browser has painted display:block before starting
@@ -1340,7 +1247,7 @@ function calculate() {
 
   // === DECISION PLAN ===
   const dp = $('decisionPlan');
-  dp.className = 'decision-plan paid-only';
+  dp.className = 'decision-plan';
   if (decision.type === 'hack') {
     dp.classList.add('dp-hack');
     $('dpIcon').textContent = '🏘️';
@@ -1460,7 +1367,8 @@ function calculate() {
   if (rentalIncome > 0) {
     $('bdRentalRow').style.display = '';
     $('bdNetRow').style.display = '';
-    $('bdRental').textContent = '-' + fmt(rentalIncome);
+    $('bdRental').textContent = '-' + fmt(effRentalIncome);
+    if ($('bdRentalLabel')) $('bdRentalLabel').textContent = `Rental income (after ${vacancyPct}% vacancy, ${expenseRatioPct}% costs)`;
     $('bdNet').textContent = fmt(netCost);
   } else {
     $('bdRentalRow').style.display = 'none';
@@ -1518,7 +1426,15 @@ function calculate() {
       $('wBuySellingRow').style.display = 'none';
     }
   }
-  $('wBuyCost').textContent = '-' + fmt(w5.cumulativeOwn);
+  $('wBuyCost').textContent = (w5.cumulativeOwn >= 0 ? '-' : '+') + fmt(Math.abs(w5.cumulativeOwn));
+  if ($('wBuySavingsRow')) {
+    if (w5.buyerGains > 0.5) {
+      $('wBuySavingsRow').style.display = '';
+      $('wBuySavingsGains').textContent = '+' + fmt(w5.buyerGains);
+    } else {
+      $('wBuySavingsRow').style.display = 'none';
+    }
+  }
   $('wBuyNet').textContent = fmtSigned(w5.buyNet);
   $('wBuyNet').className = w5.buyNet >= 0 ? 'wealth-pos' : 'wealth-neg';
 
@@ -1532,10 +1448,19 @@ function calculate() {
   } else {
     $('wRentSavingsRow').style.display = 'none';
   }
+  if ($('wRentTaxRow')) {
+    if (w5.investTax > 0.5) {
+      $('wRentTaxRow').style.display = '';
+      $('wRentTax').textContent = '-' + fmt(w5.investTax);
+      if ($('wRentTaxLabel')) $('wRentTaxLabel').textContent = `Tax on investment gains (${params.investTaxPct}%)`;
+    } else {
+      $('wRentTaxRow').style.display = 'none';
+    }
+  }
   $('wRentCost').textContent = '-' + fmt(w5.cumulativeRent);
   $('wRentNet').textContent = fmtSigned(w5.rentNet);
   $('wRentNet').className = w5.rentNet >= 0 ? 'wealth-pos' : 'wealth-neg';
-  $('wRentReturnNote').textContent = `Assumes ${investReturn}% annual return on investments`;
+  $('wRentReturnNote').textContent = `Assumes ${investReturn}% annual return; gains taxed at ${params.investTaxPct}% at exit. Both sides invest whatever they save each month.`;
 
   // Wealth verdict — MUST match dpWealthImpact since both use w5.wealthImpact
   const wCard = $('wealthBuyCard');
@@ -1597,6 +1522,9 @@ function calculate() {
   $('beSnapDiff5').textContent = fmtSigned(beY5.wealthImpact);
   $('beSnapDiff5').className = 'be-snap-val ' + (beY5.wealthImpact >= 0 ? 'pos' : 'neg');
 
+  const beBarMax = Math.max(10, Math.ceil(breakEven.scanYears || 10));
+  if ($('beBarMid')) $('beBarMid').textContent = `Year ${Math.round(beBarMax / 2)}`;
+  if ($('beBarEnd')) $('beBarEnd').textContent = `Year ${beBarMax}`;
   if (breakEven.found) {
     if (breakEven.month <= 1) {
       // Buying is ahead from the very first sample — no catch-up period.
@@ -1620,7 +1548,7 @@ function calculate() {
       $('beBarWrap').style.display = '';
       const beLabel = fmtBreakEven(breakEven);
       $('beTimeline').innerHTML = `Buying breaks even at <span class="be-highlight">${beLabel}</span>`;
-      const pct = Math.min(breakEven.year / 10 * 100, 100);
+      const pct = Math.min(breakEven.year / beBarMax * 100, 100);
       $('beBarFill').style.width = pct + '%';
       $('beBarMarker').style.left = pct + '%';
       $('beBarMarker').setAttribute('data-year', breakEven.year);
@@ -1635,11 +1563,11 @@ function calculate() {
     }
   } else {
     $('beBarWrap').style.display = '';
-    $('beTimeline').innerHTML = '<span class="be-never">Buying does not break even within 10 years.</span>';
+    $('beTimeline').innerHTML = `<span class="be-never">Buying does not break even within ${beBarMax} years.</span>`;
     $('beBarFill').style.width = '100%';
     $('beBarFill').classList.add('be-bar-never');
     $('beBarMarker').style.display = 'none';
-    $('beDetail').textContent = `Under these assumptions, renting and investing remains the financially stronger option for at least a decade.`;
+    $('beDetail').textContent = `Under these assumptions, renting and investing stays ahead for the full ${beBarMax}-year window.`;
   }
 
   // Time horizon vs break-even warning
@@ -1649,7 +1577,7 @@ function calculate() {
     horizonWarn.textContent = `⚠ You may not reach break-even within your expected ${timeHorizon}-year timeframe. Break-even is at year ${breakEven.year}, which is ${(breakEven.year - timeHorizon).toFixed(1)} years beyond your plan.`;
   } else if (!breakEven.found) {
     horizonWarn.style.display = '';
-    horizonWarn.textContent = `⚠ Break-even is not reached within 10 years — well beyond your ${timeHorizon}-year plan.`;
+    horizonWarn.textContent = `⚠ Break-even is not reached within ${beBarMax} years — beyond your ${timeHorizon}-year plan.`;
   } else {
     horizonWarn.style.display = 'none';
   }
@@ -1658,8 +1586,8 @@ function calculate() {
   const transInsight = $('transitionInsight');
   if (moveOutYear > 0 && rentalIncome > 0) {
     transInsight.style.display = '';
-    const postRental = rentalIncome * 1.75;
-    transInsight.textContent = `After year ${moveOutYear}, this property transitions to a full rental (~${fmt(postRental)}/mo income), improving cash flow and long-term returns.`;
+    const postRental = rentalIncome + rentalIncome / params.rentalUnits;
+    transInsight.textContent = `After year ${moveOutYear}, your unit is rented too (~${fmt(postRental)}/mo gross across ${params.rentalUnits + 1} units, before vacancy and costs) — and you pay ${fmt(rent)}/mo rent elsewhere, growing with rent growth. Both effects are in the wealth math.`;
   } else {
     transInsight.style.display = 'none';
   }
@@ -1680,7 +1608,7 @@ function calculate() {
       $('beReversalHeadline').textContent =
         `Buying's lead peaks around year ${reversal.peakYear} at ~${fmt(reversal.peakImpact)}, then reverses.`;
       $('beReversalBody').textContent =
-        `After year ${reversal.reversalYear}, the renter's compounding investment portfolio (at ${invReturn}%/yr) overtakes home appreciation (at ${appreciationPct}%/yr). ` +
+        `After year ${reversal.reversalYear}, the renter's compounding investment portfolio (at ${investReturn}%/yr) overtakes home appreciation (at ${appreciationPct}%/yr). ` +
         `By year ${Math.round(reversal.finalYear)}, ${finalDirection}.`;
       $('beReversalAction').textContent =
         sellWindowEnd > sellWindowStart
@@ -1691,91 +1619,78 @@ function calculate() {
     }
   }
 
-  // === SENSITIVITY ANALYSIS ===
+  // === SENSITIVITY ANALYSIS === (where the recommendation itself flips)
+  const buyWins = decision.wealth5.wealthImpact >= 0;
   const rateCard = $('sensRateCard');
-
-  if (rateThreshold.noThreshold && rateThreshold.wealthBreakRate != null) {
-    // Monthly cost never dips below rent, but the gap is close enough that
-    // equity building makes buying win on a wealth basis at lower rates.
-    rateCard.classList.remove('sens-structural');
-    $('sensRateIcon').textContent = '⚖️';
-    $('sensRateTitle').textContent = 'Rate Threshold (Wealth-Based)';
-    $('sensRate').textContent = '~' + rateThreshold.wealthBreakRate + '%';
-    $('sensRateDetail').textContent =
-      `No rate makes monthly ownership cheaper than ${fmt(rent)} rent — at 0%, ownership is still ${fmt(rateThreshold.zeroCost)}/mo ` +
-      `(${fmt(rateThreshold.zeroGap)} more). However, at ~${rateThreshold.wealthBreakRate}% or below, strong equity building means ` +
-      `buying breaks even quickly on a total-wealth basis. At today's ${rate}%, the equity gains can't overcome the monthly premium.`;
-  } else if (rateThreshold.noThreshold) {
-    // Truly structural — even equity building can't save it at reasonable rates
-    rateCard.classList.add('sens-structural');
-    $('sensRateIcon').textContent = '🚫';
-    $('sensRateTitle').textContent = 'Buying Is Structurally More Expensive';
-    $('sensRate').textContent = 'No rate helps';
-    $('sensRateDetail').textContent =
-      `Even at 0% interest, ownership costs ${fmt(rateThreshold.zeroCost)}/mo — ` +
-      `${fmt(rateThreshold.zeroGap)} more than your ${fmt(rent)} rent. ` +
-      `The non-mortgage costs alone are too high relative to rent. ` +
-      `To change this equation: look at lower-priced homes, explore multi-family properties for rental income, or wait for the market to correct.`;
-  } else if (rateThreshold.buyingIsCheaper) {
-    rateCard.classList.remove('sens-structural');
-    $('sensRateIcon').textContent = '📉';
-    $('sensRateTitle').textContent = 'Interest Rate Threshold';
+  rateCard.classList.remove('sens-structural');
+  $('sensRateIcon').textContent = '📉';
+  $('sensRateTitle').textContent = 'Interest Rate Tipping Point';
+  const parityNote = rateThreshold.parityRate == null
+    ? ` Monthly cost never matches rent at any rate — at 0% you'd still pay ${fmt(rateThreshold.zeroNetCost != null ? rateThreshold.zeroNetCost : totalOwnership)}/mo.`
+    : ` (Monthly cost alone matches rent at ${rateThreshold.parityRate}%.)`;
+  if (rateThreshold.noThreshold) {
+    $('sensRate').textContent = buyWins ? 'Any rate' : 'No rate helps';
+    $('sensRateDetail').textContent = buyWins
+      ? `Buying stays ahead over ${timeHorizon} years at any rate from 0–20%. The equity and appreciation math dominates the interest cost.` + parityNote
+      : `No rate between 0% and 20% makes buying win over ${timeHorizon} years. The price-to-rent ratio, closing and selling costs are the problem — not the rate.` + parityNote;
+    if (!buyWins) { rateCard.classList.add('sens-structural'); $('sensRateIcon').textContent = '🚫'; }
+  } else if (buyWins) {
     $('sensRate').textContent = rateThreshold.threshold + '%';
-    $('sensRateDetail').textContent = `Buying stays favorable up to ${rateThreshold.threshold}% interest. You currently have ${(rateThreshold.threshold - rate).toFixed(2)}% of cushion before renting becomes cheaper.`;
+    $('sensRateDetail').textContent = `Buying stays ahead over ${timeHorizon} years at rates up to ${rateThreshold.threshold}%. You have ${(rateThreshold.threshold - rate).toFixed(2)}% of cushion above today's ${rate}%.` + parityNote;
   } else {
-    rateCard.classList.remove('sens-structural');
-    $('sensRateIcon').textContent = '📉';
-    $('sensRateTitle').textContent = 'Interest Rate Threshold';
     $('sensRate').textContent = rateThreshold.threshold + '%';
-    $('sensRateDetail').textContent = `If rates dropped to ${rateThreshold.threshold}%, buying would become cheaper than renting. That's a ${(rate - rateThreshold.threshold).toFixed(2)}% decrease from today's ${rate}%.`;
+    $('sensRateDetail').textContent = `At ${rateThreshold.threshold}% or below, buying would come out ahead over ${timeHorizon} years — a ${(rate - rateThreshold.threshold).toFixed(2)}% drop from today's ${rate}%.` + parityNote;
   }
 
-  // Home price
   const priceCard = $('sensPriceCard');
   priceCard.classList.remove('sens-structural');
   $('sensPriceIcon').textContent = '🏷️';
-  $('sensPriceTitle').textContent = 'Home Price Threshold';
-  if (priceThreshold.buyingIsCheaper) {
+  $('sensPriceTitle').textContent = 'Home Price Tipping Point';
+  if (priceThreshold.noThreshold) {
+    $('sensPrice').textContent = buyWins ? 'Any price' : 'No price helps';
+    $('sensPriceDetail').textContent = buyWins
+      ? `Buying stays ahead across the whole price range tested (25%–300% of your price).`
+      : `Even at a quarter of the price, buying doesn't win over ${timeHorizon} years — the horizon is too short for appreciation to cover closing and selling costs.`;
+  } else if (buyWins) {
     $('sensPrice').textContent = fmt(priceThreshold.threshold);
-    $('sensPriceDetail').textContent = `Buying works at prices up to ~${fmt(priceThreshold.threshold)}. You have ${fmt(priceThreshold.threshold - homePrice)} of room above your target price.`;
+    $('sensPriceDetail').textContent = `Buying works at prices up to ~${fmt(priceThreshold.threshold)} — ${fmt(priceThreshold.threshold - homePrice)} (${Math.round((priceThreshold.threshold / homePrice - 1) * 100)}%) above your target.`;
   } else {
     $('sensPrice').textContent = fmt(priceThreshold.threshold);
-    $('sensPriceDetail').textContent = `The home price would need to drop to ~${fmt(priceThreshold.threshold)} for buying to match your rent cost. That's a ${Math.round((1 - priceThreshold.threshold / homePrice) * 100)}% decrease.`;
+    $('sensPriceDetail').textContent = `The price would need to be ~${fmt(priceThreshold.threshold)} for buying to win over ${timeHorizon} years — a ${Math.round((1 - priceThreshold.threshold / homePrice) * 100)}% drop from ${fmt(homePrice)}.`;
   }
 
-  // Sensitivity summary — contextualizes how far you are from the tipping points
   const sensParts = [];
-  if (rateThreshold.noThreshold && rateThreshold.wealthBreakRate != null) {
-    const rateDropNeeded = (rate - rateThreshold.wealthBreakRate).toFixed(1);
-    sensParts.push(`Monthly costs never quite dip below rent, but at ~${rateThreshold.wealthBreakRate}% (a ${rateDropNeeded}% drop), equity building makes buying win on total wealth.`);
-  } else if (rateThreshold.noThreshold) {
-    sensParts.push('No interest rate can make this home cheaper than renting — the non-mortgage costs alone exceed your rent.');
-  } else if (rateThreshold.buyingIsCheaper) {
-    const rateCushion = (rateThreshold.threshold - rate).toFixed(1);
-    if (rateCushion > 2) sensParts.push(`You have a comfortable ${rateCushion}% rate cushion — even significant rate hikes won't flip the recommendation.`);
-    else if (rateCushion > 0.75) sensParts.push(`You have ${rateCushion}% of rate cushion. A moderate rate increase would still keep buying favorable.`);
-    else sensParts.push(`Your rate cushion is thin at ${rateCushion}%. A small rate increase could shift the math toward renting.`);
+  if (!rateThreshold.noThreshold) {
+    const d = Math.abs(rate - rateThreshold.threshold).toFixed(1);
+    if (buyWins) {
+      if (d > 1.5) sensParts.push(`You have a comfortable ${d}% rate cushion — even a sizable rate rise won't flip the call.`);
+      else if (d > 0.75) sensParts.push(`You have ${d}% of rate cushion — a moderate rate rise still keeps buying ahead.`);
+      else sensParts.push(`Your rate cushion is thin at ${d}% — a small rate rise could flip this to renting.`);
+    } else {
+      if (d > 2) sensParts.push(`Rates would need to fall ${d}% — a large move that's unlikely in the near term.`);
+      else if (d > 0.75) sensParts.push(`A ${d}% rate drop would flip this to buying — plausible over 12–24 months.`);
+      else sensParts.push(`You're only ${d}% from the rate tipping point — a modest rate drop changes the recommendation.`);
+    }
   } else {
-    const rateGap = (rate - rateThreshold.threshold).toFixed(1);
-    if (rateGap > 2) sensParts.push(`Rates would need to drop ${rateGap}% — a large move that's unlikely in the near term.`);
-    else if (rateGap > 1) sensParts.push(`A ${rateGap}% rate drop would shift this to buying — meaningful but plausible over 12-24 months.`);
-    else sensParts.push(`You're only ${rateGap}% away from the rate tipping point — a modest rate drop could change the recommendation.`);
+    sensParts.push(buyWins ? 'The recommendation is not sensitive to the interest rate.' : 'No realistic rate fixes this — the price-to-rent ratio is the issue.');
   }
-
-  if (priceThreshold.buyingIsCheaper) {
-    const priceRoom = Math.round((priceThreshold.threshold - homePrice) / homePrice * 100);
-    if (priceRoom > 20) sensParts.push(`You have ${priceRoom}% price headroom — buying works even at significantly higher prices.`);
-  } else {
-    const priceDrop = Math.round((1 - priceThreshold.threshold / homePrice) * 100);
-    if (priceDrop > 20) sensParts.push(`A ${priceDrop}% price correction is needed — that's a major market shift.`);
-    else if (priceDrop > 10) sensParts.push(`A ${priceDrop}% price drop would tip the balance — watch for market softening in your area.`);
-    else sensParts.push(`You're within ${priceDrop}% of the price tipping point — negotiating the price down could change the outcome.`);
+  if (!priceThreshold.noThreshold) {
+    const pd = Math.round(Math.abs(1 - priceThreshold.threshold / homePrice) * 100);
+    if (buyWins) {
+      if (pd > 15) sensParts.push(`You have ${pd}% of price headroom — buying works even at meaningfully higher prices.`);
+      else if (pd > 5) sensParts.push(`You have ${pd}% of price headroom — don't overbid past ~${fmt(priceThreshold.threshold)}.`);
+      else sensParts.push(`You're within ${pd}% of the price tipping point — overpaying even slightly flips this.`);
+    } else {
+      if (pd > 20) sensParts.push(`A ${pd}% price correction is needed — that's a major market shift.`);
+      else if (pd > 8) sensParts.push(`A ${pd}% lower price would tip the balance — worth negotiating hard or waiting for softening.`);
+      else sensParts.push(`You're within ${pd}% of the price tipping point — negotiating the price down could change the outcome.`);
+    }
   }
   $('sensSummary').textContent = sensParts.join(' ');
 
   // === HORIZON OUTLOOK ===
   // === AFFORDABILITY / DTI ===
-  renderAffordability(params, totalOwnership);
+  renderAffordability(params, totalOwnership - monthlyMaint);
 
   // === WEALTH DATA TABLE ===
   renderChartDataTable(params);
@@ -1807,7 +1722,6 @@ function calculate() {
     if (resultsPanel) resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  if (!window.paidAccessVerified) injectUnlockButtons();
   return true;
 }
 
@@ -1877,6 +1791,8 @@ function validateInputs() {
     ['sellingCostsPct', 'Exit Costs at Sale cannot be negative.'],
     ['vacancyPct', 'Vacancy Rate cannot be negative.'],
     ['expenseRatioPct', 'Operating Costs cannot be negative.'],
+    ['costInflationPct', 'Cost inflation cannot be negative.'],
+    ['investTaxPct', 'Tax on investment gains cannot be negative.'],
   ];
   for (const [id, msg] of nonNegFields) {
     const el = $(id);
@@ -1897,8 +1813,8 @@ function validateInputs() {
   // Time horizon must be non-negative
   const thEl = $('timeHorizon');
   const th = thEl ? (parseFloat(thEl.value) || 0) : 0;
-  if (th < 0) {
-    markInvalid(thEl, 'Time horizon cannot be negative.');
+  if (th < 1) {
+    markInvalid(thEl, 'Time horizon must be at least 1 year — a buy-vs-rent comparison needs time for equity and appreciation to matter.');
   } else {
     clearInvalid(thEl);
   }
@@ -2005,7 +1921,8 @@ function renderAffordability(params, totalOwnership) {
     return;
   }
   panel.style.display = '';
-  const monthlyIncome = income / 12;
+  const rentalCredit = (params.rentalIncome || 0) * 0.75; // lenders typically count 75% of gross rent
+  const monthlyIncome = income / 12 + rentalCredit;
   const rawDti = (totalOwnership + debt) / monthlyIncome * 100;
   // Guard against nonsensical values
   if (!isFinite(rawDti) || isNaN(rawDti)) {
@@ -2022,7 +1939,8 @@ function renderAffordability(params, totalOwnership) {
   badge.textContent = label;
   badge.className = 'dti-badge dti-' + level;
   $('dtiBreakdown').textContent =
-    `(${fmt(totalOwnership)} housing + ${fmt(debt)} existing debts) ÷ ${fmt(monthlyIncome)}/mo gross income`;
+    `(${fmt(totalOwnership)} PITI + HOA + MI, excluding maintenance` + ` + ${fmt(debt)} existing debts) ÷ ${fmt(monthlyIncome)}/mo gross income` +
+    (rentalCredit > 0 ? ` (includes 75% of rental income, ${fmt(rentalCredit)})` : '');
   const warn = $('dtiWarn');
   if (dti > 50) {
     warn.style.display = '';
@@ -2149,7 +2067,7 @@ function renderMethodology(params, totalOwnership, w5) {
   const yrLabel = `${horizon} year${horizon === 1 ? '' : 's'}`;
   $('methUpfront').textContent = `${fmt(w5.cashToClose)}  (${fmt(w5.downPayment)} down + ${fmt(w5.closingCosts)} closing)`;
   $('methMonthly').textContent = `${fmt(totalOwnership)}/mo total cost of owning`;
-  $('methInvest').textContent = `+${fmt(w5.investmentGains)} in projected investment gains over ${yrLabel} at ${invR}%`;
+  $('methInvest').textContent = `+${fmt(w5.investmentGains)} renter investment gains over ${yrLabel} at ${invR}% (after ${params.investTaxPct}% tax)` + (w5.buyerGains > 0.5 ? `; buyer invests too: +${fmt(w5.buyerGains)}` : '');
   $('methExit').textContent = w5.sellingCosts > 0
     ? `−${fmt(w5.sellingCosts)} in selling costs at exit`
     : 'No exit costs modeled';
@@ -2230,15 +2148,15 @@ function buildNarrative(decision, params, breakEven, wealth5, confidence) {
       timeInsight = `Break-even is at year ${beYr} — that's ${(beYr - horizon).toFixed(1)} years beyond your ${yrLabel} plan. If you sell on schedule, you'd lock in renting's lead instead of capturing the equity payoff.`;
     }
   } else {
-    timeInsight = `Buying never overtakes renting within 10 years under these inputs, so ${[8,11,18].includes(horizon)?'an':'a'} ${horizon}-year commitment can't recover the upfront costs. The structural gap is too wide.`;
+    timeInsight = `Buying never overtakes renting within ${Math.round(breakEven.scanYears || 10)} years under these inputs, so ${[8,11,18].includes(horizon)?'an':'a'} ${horizon}-year commitment can't recover the upfront and selling costs.`;
   }
 
   // 3. RISK & SENSITIVITY — what would have to move to flip the call.
   let riskNote;
   if (confidence.level === 'high') {
-    riskNote = `High confidence: the answer holds even if rates move ±1% or the home price drifts ±10%. You're well clear of the tipping points.`;
+    riskNote = `High confidence: the answer holds under meaningful rate and price moves — see the tipping points below for the exact cushion.`;
   } else if (confidence.level === 'medium') {
-    riskNote = `Moderate confidence: a ~1% rate swing or a ~10% price change could flip this. Watch for rate or market shifts before you commit.`;
+    riskNote = `Moderate confidence: a realistic rate or price move — or staying a year or two longer or shorter — could flip this. Check the tipping points below before you commit.`;
   } else {
     riskNote = `Low confidence: this is a coin-flip scenario. Even small changes to rate, price, rent, or your time horizon can swap the recommendation. Run a second scenario before you decide.`;
   }
@@ -2285,6 +2203,9 @@ const SCENARIO_INPUT_MAP = [
   ['timeHorizon', 'timeHorizon'],
   ['annualIncome', 'annualIncome'],
   ['monthlyDebt', 'monthlyDebt'],
+  ['costInflationPct', 'costInflationPct'],
+  ['investTaxPct', 'investTaxPct'],
+  ['rentalUnits', 'rentalUnits'],
 ];
 
 // Write a scenario's params back into the form inputs.
@@ -2317,8 +2238,7 @@ function loadScenarioIntoInputs(scen) {
 // ── Shareable-link encoding ─────────────────────────────────────────────────
 // Build a URL that captures the current form state in query params, so a
 // recipient opening the link sees the same analysis. No auth, no backend —
-// all inputs round-trip through the URL. Reserved params (paid, session_id,
-// dev) are preserved untouched.
+// all inputs round-trip through the URL.
 function buildShareLink() {
   const params = new URLSearchParams();
   params.set('share', '1');
