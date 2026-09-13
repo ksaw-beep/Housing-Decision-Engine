@@ -1,0 +1,24 @@
+# Netlify configuration for Housing Decision Engine
+# Deploy: push this entire Project Folder to a GitHub repo,
+# then connect it to Netlify. The root of the repo = root of the site.
+
+[build]
+  # No build step needed — everything is plain HTML/CSS/JS
+  publish = "."
+
+
+# Cache static assets aggressively, HTML never
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"

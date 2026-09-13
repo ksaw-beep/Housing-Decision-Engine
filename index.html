@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housing Decision Engine — Should You Buy or Rent?</title>
+<meta name="description" content="Know whether buying this home will build your wealth or set you back. A decision engine for first-time homebuyers.">
+<link rel="icon" type="image/png" href="/assets/logo.png">
+<link rel="apple-touch-icon" href="/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=8">
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="container">
+    <img src="assets/logo.png" alt="Housing Decision Engine" class="hero-logo">
+    <h1 class="hero-headline">Know if this home builds wealth — or quietly sets you back.</h1>
+    <p class="hero-sub">Most calculators show monthly payment. This one models long-term wealth, break-even timing, and how close you are to the tipping point — so you can decide with data, not vibes.</p>
+
+    <div class="hero-ctas">
+      <a href="app/index.html" class="btn btn-primary">Run My Free Analysis <span aria-hidden="true">→</span></a>
+      <a href="#example" class="btn btn-secondary">See a Worked Example</a>
+    </div>
+    <p class="hero-microcopy">100% free — full analysis, every feature. No signup, no payment, no catch.</p>
+    <div class="hero-proof">
+      <div class="hero-proof-item">
+        <span class="proof-icon">&#8987;</span>
+        <span>Results in under 60 seconds</span>
+      </div>
+      <div class="hero-proof-item">
+        <span class="proof-icon">&#128274;</span>
+        <span>Your numbers never leave your browser</span>
+      </div>
+      <div class="hero-proof-item">
+        <span class="proof-icon">&#128100;</span>
+        <span>Free — no account, no paywall</span>
+      </div>
+    </div>
+    <figure class="hero-shot">
+      <img src="assets/decision-plan.png" alt="A decision plan from the tool: the recommendation, a confidence rating, a rent-vs-buy tipping-point dial, the key trade-off, and the wealth impact over the chosen time horizon." width="1704" height="1674" loading="eager">
+      <figcaption>A real decision plan — recommendation, confidence, tipping point, and the numbers behind it.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ PROBLEM ============ -->
+<section class="section problem-section">
+  <div class="container">
+    <div class="section-label">The Problem</div>
+    <h2 class="section-title">Most People Buy Homes Without Seeing the Full Financial Picture</h2>
+    <div class="problem-grid">
+      <div class="problem-text">
+        <p>Buying a home is one of the largest financial decisions you'll ever make — yet most people make it with incomplete information.</p>
+        <p>Traditional tools focus on monthly payments, but miss:</p>
+        <ul class="problem-list">
+          <li>The long-term impact on your wealth</li>
+          <li>Whether renting might actually be the better financial move</li>
+          <li>How long you need to stay for buying to make sense</li>
+          <li>The real risk of stretching your budget</li>
+        </ul>
+      </div>
+      <div class="problem-consequences">
+        <div class="consequence-card">
+          <div class="consequence-icon">&#9888;</div>
+          <p><strong>Overestimate</strong> what they can afford</p>
+        </div>
+        <div class="consequence-card">
+          <div class="consequence-icon">&#128200;</div>
+          <p><strong>Underestimate</strong> the true cost of ownership</p>
+        </div>
+        <div class="consequence-card">
+          <div class="consequence-icon">&#128275;</div>
+          <p><strong>Lock in</strong> decisions that limit financial flexibility</p>
+        </div>
+        <div class="consequence-label">As a result, many buyers:</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SOLUTION ============ -->
+<section class="section solution-section">
+  <div class="container">
+    <div class="section-label">The Solution</div>
+    <h2 class="section-title">A Smarter Way to Decide</h2>
+    <p class="section-subtitle">This tool analyzes your full financial picture and gives you a clear answer:</p>
+    <div class="solution-grid">
+      <div class="solution-item">
+        <div class="solution-check">&#10003;</div>
+        <div>
+          <strong>Whether buying makes financial sense</strong>
+          <p>Based on your actual numbers, not rules of thumb</p>
+        </div>
+      </div>
+      <div class="solution-item">
+        <div class="solution-check">&#10003;</div>
+        <div>
+          <strong>How it compares to renting and investing</strong>
+          <p>Including what happens if you invest the difference at a market-historical return rate (default 7%, adjustable)</p>
+        </div>
+      </div>
+      <div class="solution-item">
+        <div class="solution-check">&#10003;</div>
+        <div>
+          <strong>Your long-term wealth impact</strong>
+          <p>5-year and 10-year projections, not just monthly cost</p>
+        </div>
+      </div>
+      <div class="solution-item">
+        <div class="solution-check">&#10003;</div>
+        <div>
+          <strong>How long you need to stay for it to pay off</strong>
+          <p>Precise break-even timeline down to the month</p>
+        </div>
+      </div>
+      <div class="solution-item">
+        <div class="solution-check">&#10003;</div>
+        <div>
+          <strong>What risks you should consider</strong>
+          <p>Sensitivity analysis shows how close you are to the tipping point</p>
+        </div>
+      </div>
+    </div>
+    <p class="solution-tagline">No spreadsheets. No guesswork. Just a clear, data-driven decision.</p>
+  </div>
+</section>
+
+<!-- ============ WHO THIS IS FOR ============ -->
+<section class="section audience-section">
+  <div class="container">
+    <div class="section-label">Who This Is For</div>
+    <h2 class="section-title">Built for the Moment You're About to Sign</h2>
+    <p class="section-subtitle">If any of these sound like you, this tool was built for the question keeping you up.</p>
+    <div class="audience-grid">
+      <div class="audience-persona">
+        <div class="audience-persona-icon" aria-hidden="true">🔑</div>
+        <h3 class="audience-persona-title">First-time buyer</h3>
+        <p class="audience-persona-text">You've never run the math beyond a monthly-payment calculator and you want a sanity check before you sign.</p>
+      </div>
+      <div class="audience-persona">
+        <div class="audience-persona-icon" aria-hidden="true">⚖️</div>
+        <h3 class="audience-persona-title">On the fence</h3>
+        <p class="audience-persona-text">Renting feels safe, buying feels grown-up. You want to know which one actually leaves you wealthier.</p>
+      </div>
+      <div class="audience-persona">
+        <div class="audience-persona-icon" aria-hidden="true">📅</div>
+        <h3 class="audience-persona-title">Short-horizon buyer</h3>
+        <p class="audience-persona-text">A job change or life event means you may only stay 2–5 years. You need to know if buying breaks even in time.</p>
+      </div>
+      <div class="audience-persona">
+        <div class="audience-persona-icon" aria-hidden="true">📈</div>
+        <h3 class="audience-persona-title">Wealth-builder</h3>
+        <p class="audience-persona-text">You think in terms of opportunity cost. You want to compare buying against investing the down payment in the market.</p>
+      </div>
+      <div class="audience-persona">
+        <div class="audience-persona-icon" aria-hidden="true">🏘️</div>
+        <h3 class="audience-persona-title">House-hack curious</h3>
+        <p class="audience-persona-text">You're considering a duplex or triplex with rental income. You want to see how that changes the math.</p>
+      </div>
+      <div class="audience-persona">
+        <div class="audience-persona-icon" aria-hidden="true">🛡️</div>
+        <h3 class="audience-persona-title">Risk-averse</h3>
+        <p class="audience-persona-text">You can afford it on paper, but you want to know how much rate or price movement it takes to flip the call.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="section how-section">
+  <div class="container">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">Three Steps to Financial Clarity</h2>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <h3 class="step-title">Enter Your Details</h3>
+        <p>Input the home price, your finances, and key assumptions. Takes about 30 seconds.</p>
+      </div>
+      <div class="step-arrow">&#8594;</div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <h3 class="step-title">Analyze the Full Picture</h3>
+        <p>The engine evaluates affordability, compares renting vs buying, and models long-term outcomes.</p>
+      </div>
+      <div class="step-arrow">&#8594;</div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <h3 class="step-title">Get Your Decision Plan</h3>
+        <p>Receive a clear recommendation with supporting numbers, timelines, and actionable next steps.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY DIFFERENT ============ -->
+<section class="section different-section">
+  <div class="container">
+    <div class="section-label">Why This Is Different</div>
+    <h2 class="section-title">Not Another Mortgage Calculator</h2>
+    <div class="different-grid">
+      <div class="different-card">
+        <div class="different-vs">
+          <span class="vs-old">Typical calculators</span>
+          <span class="vs-arrow">vs</span>
+          <span class="vs-new">This engine</span>
+        </div>
+      </div>
+      <div class="different-row">
+        <div class="different-old">Show monthly payment</div>
+        <div class="different-new">Models long-term wealth — not just monthly cost</div>
+      </div>
+      <div class="different-row">
+        <div class="different-old">Ignore what renters could earn</div>
+        <div class="different-new">Accounts for investing the difference at a market-historical return rate (default 7%, adjustable)</div>
+      </div>
+      <div class="different-row">
+        <div class="different-old">No timeline guidance</div>
+        <div class="different-new">Shows break-even timelines down to the month</div>
+      </div>
+      <div class="different-row">
+        <div class="different-old">No risk analysis</div>
+        <div class="different-new">Surfaces financial risks with sensitivity analysis</div>
+      </div>
+      <div class="different-row">
+        <div class="different-old">Generic output</div>
+        <div class="different-new">Personalized decision plan with confidence level</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUCT DEMO ============ -->
+<section class="section demo-section" id="demo">
+  <div class="container">
+    <div class="section-label">What You'll See</div>
+    <h2 class="section-title">A Real Decision Plan, Not Just Numbers</h2>
+    <p class="section-subtitle">Here's what a typical output looks like for a $350,000 home with $1,800/mo rent:</p>
+    <p class="section-note">This is not just a mortgage payment calculator — it is a decision report.</p>
+
+    <div class="demo-output">
+      <!-- Decision Plan Preview -->
+      <div class="demo-plan">
+        <div class="demo-plan-header">
+          <div class="demo-plan-icon">&#128273;</div>
+          <div>
+            <div class="demo-plan-label">Your Decision Plan</div>
+            <div class="demo-plan-verdict">You should rent and invest for the next 3–5 years under these assumptions.</div>
+          </div>
+          <div class="demo-plan-confidence">
+            <div class="demo-conf-label">Confidence</div>
+            <div class="demo-conf-badge">High</div>
+          </div>
+        </div>
+        <div class="demo-plan-horizon">Rent for the next 3-5 years, then reassess</div>
+
+        <div class="demo-metrics">
+          <div class="demo-metric">
+            <div class="demo-metric-label">Monthly Difference</div>
+            <div class="demo-metric-value red">$1,149/mo</div>
+          </div>
+          <div class="demo-metric">
+            <div class="demo-metric-label">Annual Impact</div>
+            <div class="demo-metric-value red">$13,782/yr</div>
+          </div>
+          <div class="demo-metric">
+            <div class="demo-metric-label">5-Year Wealth Impact</div>
+            <div class="demo-metric-value red">-$53,671</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wealth Callout -->
+      <div class="demo-callout">
+        <div class="demo-callout-icon">&#128176;</div>
+        <div class="demo-callout-text">Renting and investing the difference keeps you <strong>$53,671 ahead</strong> after 5 years</div>
+      </div>
+
+      <!-- Break-even Preview -->
+      <div class="demo-breakeven">
+        <div class="demo-be-title">Break-Even Analysis</div>
+        <div class="demo-be-result">Buying does not break even within 10 years</div>
+        <div class="demo-be-bar">
+          <div class="demo-be-track">
+            <div class="demo-be-fill"></div>
+          </div>
+          <div class="demo-be-labels">
+            <span>Year 0</span>
+            <span>Year 5</span>
+            <span>Year 10</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="demo-cta">
+      <a href="app/index.html" class="btn btn-primary">Run This With My Numbers — Free</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WORKED EXAMPLE ============ -->
+<section class="section worked-example-section" id="example">
+  <div class="container">
+    <div class="section-label">A Real Example</div>
+    <h2 class="section-title">Same Home, Two Questions, Two Different Answers</h2>
+    <p class="section-subtitle">Here&#x2019;s why monthly payment isn&#x2019;t the whole story. The same $400,000 home can look like a terrible deal <em>or</em> the right move — depending on which question you ask.</p>
+
+    <div class="worked-grid">
+      <!-- ====== THE SCENARIO (stat tile grid) ====== -->
+      <aside class="worked-scenario">
+        <div class="worked-scenario-head">
+          <span class="worked-scenario-icon" aria-hidden="true">📋</span>
+          <div>
+            <div class="worked-scenario-eyebrow">The Scenario</div>
+            <div class="worked-scenario-title">A $400K home, decided two ways</div>
+          </div>
+        </div>
+        <div class="worked-stat-grid">
+          <div class="worked-stat">
+            <div class="worked-stat-label">Home price</div>
+            <div class="worked-stat-value">$400,000</div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Down payment</div>
+            <div class="worked-stat-value">$40,000<span class="worked-stat-sub">10%</span></div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Interest rate</div>
+            <div class="worked-stat-value">6.75%<span class="worked-stat-sub">30-yr fixed</span></div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Current rent</div>
+            <div class="worked-stat-value">$2,200<span class="worked-stat-sub">per month</span></div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Time horizon</div>
+            <div class="worked-stat-value">7 years</div>
+          </div>
+          <div class="worked-stat">
+            <div class="worked-stat-label">Home appreciation</div>
+            <div class="worked-stat-value">5%<span class="worked-stat-sub">per year · moderate market</span></div>
+          </div>
+          <div class="worked-stat worked-stat-span">
+            <div class="worked-stat-label">If renting, invest the $40K at</div>
+            <div class="worked-stat-value">7%<span class="worked-stat-sub">per year · historical S&amp;P average</span></div>
+          </div>
+        </div>
+        <p class="worked-scenario-note">Tax (1.2%), insurance ($1,800/yr), maintenance (1% of value), closing (3%), and exit costs (6%) use standard defaults.</p>
+      </aside>
+
+      <!-- ====== THE TWO ANSWERS ====== -->
+      <div class="worked-answers">
+        <!-- Question 1 -->
+        <article class="worked-answer worked-answer-bad">
+          <header class="worked-answer-head">
+            <span class="worked-answer-badge">Q1</span>
+            <span class="worked-answer-question">&ldquo;Is it cheaper per month?&rdquo;</span>
+          </header>
+          <div class="worked-answer-hero">
+            <div class="worked-answer-delta worked-answer-delta-neg">
+              <span class="worked-answer-delta-sign">+</span>
+              <span class="worked-answer-delta-amt">$1,140</span>
+              <span class="worked-answer-delta-unit">/mo to own</span>
+            </div>
+          </div>
+          <div class="worked-compare-bars" aria-label="Monthly cost: rent vs buy">
+            <div class="worked-compare-row">
+              <span class="worked-compare-label">Rent</span>
+              <div class="worked-compare-track"><div class="worked-compare-fill worked-compare-rent" style="width:65.9%"></div></div>
+              <span class="worked-compare-amt">$2,200</span>
+            </div>
+            <div class="worked-compare-row">
+              <span class="worked-compare-label">Own</span>
+              <div class="worked-compare-track"><div class="worked-compare-fill worked-compare-buy" style="width:100%"></div></div>
+              <span class="worked-compare-amt">$3,340</span>
+            </div>
+          </div>
+          <footer class="worked-answer-foot">
+            <span class="worked-verdict-pill worked-verdict-pill-neg">Surface verdict: Rent</span>
+            <span class="worked-answer-aside">A typical mortgage calculator stops here — and most buyers walk away.</span>
+          </footer>
+        </article>
+
+        <!-- The twist divider -->
+        <div class="worked-twist" aria-hidden="true">
+          <span class="worked-twist-line"></span>
+          <span class="worked-twist-label">
+            <span class="worked-twist-icon">↓</span>
+            <span>but ask the <em>right</em> question</span>
+          </span>
+          <span class="worked-twist-line"></span>
+        </div>
+
+        <!-- Question 2 -->
+        <article class="worked-answer worked-answer-good">
+          <header class="worked-answer-head">
+            <span class="worked-answer-badge worked-answer-badge-good">Q2</span>
+            <span class="worked-answer-question">&ldquo;Which path leaves me wealthier in 7 years?&rdquo;</span>
+          </header>
+          <div class="worked-answer-hero">
+            <div class="worked-answer-delta worked-answer-delta-pos">
+              <span class="worked-answer-delta-sign">+</span>
+              <span class="worked-answer-delta-amt">$13,000</span>
+              <span class="worked-answer-delta-unit">ahead by year 7</span>
+            </div>
+          </div>
+          <ul class="worked-why-list">
+            <li><span class="worked-why-icon" aria-hidden="true">🏗️</span><span><strong>~$207K equity built</strong> (net of exit costs)</span></li>
+            <li><span class="worked-why-icon" aria-hidden="true">📈</span><span><strong>5% appreciation</strong> outpaces renting + investing the $40K at 7%</span></li>
+            <li><span class="worked-why-icon" aria-hidden="true">⏱️</span><span><strong>Break-even hits month 67</strong> — still inside a 7-year stay</span></li>
+          </ul>
+          <footer class="worked-answer-foot">
+            <span class="worked-verdict-pill worked-verdict-pill-pos">Full verdict: Buy — medium confidence</span>
+            <span class="worked-answer-aside">Close to the tipping point: a 1% rate hike or 10% price drop flips it.</span>
+          </footer>
+        </article>
+      </div>
+    </div>
+
+    <!-- ====== INSIGHT BANNER ====== -->
+    <div class="worked-insight">
+      <div class="worked-insight-icon" aria-hidden="true">💡</div>
+      <div class="worked-insight-body">
+        <div class="worked-insight-title">Monthly cost tells one story. Long-term wealth tells another.</div>
+        <p class="worked-insight-text">This tool runs both — and shows you <em>how close you are to the tipping point</em>, so you know whether the recommendation is a confident call or a genuine coin flip.</p>
+      </div>
+    </div>
+    <p class="worked-disclaimer">Example figures are illustrative. Your actual results depend on your inputs, which you can change to match your exact situation.</p>
+  </div>
+</section>
+
+<!-- ============ VALUE ============ -->
+<section class="section value-section" id="free">
+  <div class="container">
+    <div class="value-card">
+      <div class="section-label">The Value</div>
+      <h2 class="section-title">This Isn't About Saving $100 — It's About Avoiding a $50K+ Mistake</h2>
+      <p class="value-text">A wrong call on a $500,000 home can cost tens of thousands of dollars over just a few years.</p>
+      <p class="value-highlight">The best protection is running the full math before you sign — so there's no paywall between you and the answer.</p>
+      <div class="price-block">
+        <div class="price-amount">$0</div>
+        <div class="price-label">Full analysis. Every feature. Free.</div>
+      </div>
+      <a href="app/index.html" class="btn btn-primary btn-lg">Run My Full Analysis — Free</a>
+      <p class="price-note">No account. No payment. No email signup. Your inputs never leave your browser.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW THE MATH WORKS ============ -->
+<section class="section features-section">
+  <div class="container">
+    <div class="section-label">Under the Hood</div>
+    <h2 class="section-title">Three Things Most Calculators Don't Do</h2>
+    <p class="section-subtitle">The mechanics that turn a payment estimator into a real decision tool.</p>
+    <div class="features-grid features-grid-3">
+      <div class="feature-card feature-card-rich">
+        <div class="feature-icon-large" aria-hidden="true">📊</div>
+        <h3>Renter's opportunity cost is modeled in</h3>
+        <p>If you don't buy, that down payment doesn't sit in cash — it gets invested. The tool simulates renting <em>and</em> investing the difference at a 7% historical-market return (adjustable). That's the apples-to-apples comparison most calculators skip.</p>
+      </div>
+      <div class="feature-card feature-card-rich">
+        <div class="feature-icon-large" aria-hidden="true">⚖️</div>
+        <h3>Tipping-point dial, not a binary verdict</h3>
+        <p>"Buy" is rarely a clean answer. The tool shows you a confidence level — and a sensitivity readout that says exactly how much rates can rise or prices can drop before the recommendation flips. You see whether you're on solid ground or a coin flip.</p>
+      </div>
+      <div class="feature-card feature-card-rich">
+        <div class="feature-icon-large" aria-hidden="true">🔬</div>
+        <h3>Every number is auditable</h3>
+        <p>The full methodology panel shows exactly how monthly cost, equity build, appreciation, exit costs, and investment returns roll up into the recommendation. No black box, no marketing math — just the formulas, line by line.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section faq-section" id="faq">
+  <div class="container">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Common Questions</h2>
+    <p class="section-subtitle">Quick answers to what most buyers ask before they decide.</p>
+
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary class="faq-q">
+          <span class="faq-q-text">Is this financial advice?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="faq-a">
+          <p>No. This is an educational decision-support tool. It models the math — mortgage, taxes, equity, appreciation, investment returns, exit costs — using your inputs and standard formulas, then shows the result. It does not know your full tax situation, life plans, or risk tolerance. For a personal recommendation, talk to a qualified financial advisor.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">
+          <span class="faq-q-text">Is it really free? What's the catch?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="faq-a">
+          <p>Yes — the full tool, every feature, no paywall and no "pro" tier. There's no catch: the whole thing runs in your browser, so there's nothing to host, store, or charge you for. If it helps you make a better decision, share it with someone else who's about to sign.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">
+          <span class="faq-q-text">Is my data saved or sent anywhere?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="faq-a">
+          <p>No. Every calculation runs in your browser. Your home price, income, debts, and other inputs never leave your device — we don't have a database storing them, and there's nothing for us to lose if we got hacked.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">
+          <span class="faq-q-text">Do I need to create an account?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="faq-a">
+          <p>No account, no password, no email signup. Open the tool, enter your numbers, and get your answer. Want to save or share an analysis? The <strong>Share</strong> button copies a link that reproduces it exactly on any device.</p>
+        </div>
+      </details>
+
+
+      <details class="faq-item">
+        <summary class="faq-q">
+          <span class="faq-q-text">How is this different from Zillow / Rocket / NerdWallet calculators?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="faq-a">
+          <p>Most calculators answer <em>"what's my monthly payment?"</em> — they show P&amp;I, maybe taxes/insurance, and stop. This tool answers a different question: <em>"will buying this home leave me wealthier than renting and investing the difference?"</em> It models 5–10 years of equity build, appreciation, exit costs, and what renters earn by investing the cash they don't tie up in a down payment. The output is a recommendation with a confidence level, not just a number.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">
+          <span class="faq-q-text">What loan types does it support?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="faq-a">
+          <p>Conventional, FHA, VA, and Jumbo. Mortgage insurance is auto-calculated based on loan type and down payment — FHA gets MIP, conventional under 20% down gets PMI, VA has no monthly MI, and so on. You can override the loan type explicitly if you want to test different scenarios.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-q">
+          <span class="faq-q-text">Will I get the same answer if my assumptions change?</span>
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </summary>
+        <div class="faq-a">
+          <p>That's exactly what the sensitivity analysis is for. The tool tells you how far rates can move, or how much home prices can change, before the recommendation flips. If you're "barely buy," it says so — and shows you which inputs you should sanity-check before signing.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="section final-cta-section">
+  <div class="container">
+    <h2 class="final-cta-headline">Make Your Home Decision With Confidence</h2>
+    <p class="final-cta-sub">Stop guessing. Start deciding with data.</p>
+    <a href="app/index.html" class="btn btn-primary btn-lg">Run My Free Analysis</a>
+    <p class="final-cta-note">Takes less than 60 seconds · No signup · No payment</p>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-brand">Housing Decision Engine</div>
+    <p class="footer-disclaimer">For educational purposes. Not financial advice. Consult a qualified financial advisor before making major financial decisions.</p>
+    <p class="footer-privacy">All calculations run in your browser. We never see, store, or transmit your inputs. Anonymous page-view counts via GoatCounter — no cookies.</p>
+    <p class="footer-contact">Open source — <a href="https://github.com/ksaw-beep/Housing-Decision-Engine" target="_blank" rel="noopener">view the code</a> · <a href="https://github.com/ksaw-beep/Housing-Decision-Engine/issues" target="_blank" rel="noopener">report an issue</a></p>
+  </div>
+</footer>
+
+<script data-goatcounter="https://housingdecisiontool.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
