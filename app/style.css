@@ -2478,3 +2478,34 @@ h1, h2, h3 { font-family: var(--font); }
   .header-left h1 { font-size: 22px; }
   .placeholder-title { font-size: 20px; }
 }
+
+
+/* ===== LEVERS PANEL ===== */
+.levers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 14px; }
+@media (max-width: 860px) { .levers-grid { grid-template-columns: 1fr; } }
+.levers-group { background: var(--cream); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.levers-group-assume { background: #fbfaf8; }
+.levers-group-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+.levers-group-assume .levers-group-title { color: #8a7d72; }
+.levers-table { width: 100%; border-collapse: collapse; }
+.levers-table th { text-align: left; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--border); }
+.levers-table th:not(:first-child), .levers-table td:not(:first-child) { text-align: right; white-space: nowrap; }
+.levers-table td { padding: 7px 6px; font-size: 13.5px; border-bottom: 1px solid rgba(0,0,0,0.05); vertical-align: middle; }
+.levers-table tr:last-child td { border-bottom: none; }
+.lever-val { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+.lever-val.pos { color: var(--green); } .lever-val.neg { color: var(--red); }
+.lever-delta { color: var(--muted); font-size: 12.5px; }
+.lever-flip td { background: rgba(22,128,61,0.06); }
+.lever-tag { display: inline-block; background: var(--green); color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 8px; margin-left: 6px; vertical-align: middle; }
+.levers-foot { margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+.dp-narr-comparable { border-left-color: var(--purple) !important; }
+.dp-narr-longhorizon { border-left-color: #8a7d72 !important; }
+.dp-narr-longhorizon .dp-narr-text, .dp-narr-comparable .dp-narr-text { font-size: 14px; }
+
+/* Grid children may never force the page wider than the viewport */
+.main-grid > *, .levers-grid > *, .kpi-row > *, .wealth-grid > *, .sens-grid > * { min-width: 0; }
+.results-content { min-width: 0; overflow-x: hidden; }
+@media (max-width: 600px) {
+  .levers-table th:not(:first-child), .levers-table td:not(:first-child) { white-space: normal; }
+  .levers-table td { font-size: 13px; padding: 6px 4px; }
+}

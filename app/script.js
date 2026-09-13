@@ -377,7 +377,7 @@ function calcBuyVsRentWealth(params, years) {
   const { homePrice, downPct, rate, term, taxPct, insuranceAnnual, maintPct, hoaMonthly,
           rent, rentGrowthPct, appreciationPct, rentalIncome, creditProfile, loanType,
           closingCostsPct, sellingCostsPct, investReturn, moveOutYear,
-          vacancyPct, expenseRatioPct, costInflationPct, investTaxPct, rentalUnits } = params;
+          vacancyPct, expenseRatioPct, costInflationPct, investTaxPct, rentalUnits, investSharePct } = params;
   const downPayment = homePrice * downPct / 100;
   const closingCosts = homePrice * (closingCostsPct || 0) / 100;
   const cashToClose = downPayment + closingCosts;
@@ -388,6 +388,7 @@ function calcBuyVsRentWealth(params, years) {
   const infl = ((costInflationPct == null || isNaN(costInflationPct)) ? DEFAULT_COST_INFLATION : costInflationPct) / 100;
   const taxDrag = Math.max(0, Math.min(100, (investTaxPct == null || isNaN(investTaxPct)) ? DEFAULT_INVEST_TAX : investTaxPct)) / 100;
   const units = Math.max(1, Math.round(rentalUnits || 1));
+  const investShare = Math.max(0, Math.min(100, (investSharePct == null || isNaN(investSharePct)) ? 100 : investSharePct)) / 100;
 
   const monthlyPayment = calcMonthlyMortgage(loanAmount, rate, term);
   const r = rate / 100 / 12;
@@ -457,7 +458,7 @@ function calcBuyVsRentWealth(params, years) {
     cumulativeRent += rentNow;
 
     // Invest the difference — whichever path is cheaper this month
-    const diff = buyCash - rentNow;
+    const diff = (buyCash - rentNow) * investShare; // only the share people actually invest
     if (diff > 0) { renterPortfolio += diff; renterContrib += diff; }
     else if (diff < 0) { buyerPortfolio += -diff; buyerContrib += -diff; }
   }
@@ -718,7 +719,14 @@ function calcConfidence(decision, breakEven, rateThreshold, priceThreshold, para
     else score -= 8;
   }
 
-  score = Math.max(0, Math.min(100, score));
+  // Hard caps: a recommendation that flips on a small rate or price move is never "High",
+  // no matter how large the dollar gap looks (long horizons inflate both the gap and the fragility).
+  const rateCushion = (!rateThreshold.noThreshold && rateThreshold.threshold != null) ? Math.abs(params.rate - rateThreshold.threshold) : Infinity;
+  const priceCushion = (!priceThreshold.noThreshold && priceThreshold.threshold != null) ? Math.abs(params.homePrice - priceThreshold.threshold) / params.homePrice : Infinity;
+  let cap = 100;
+  if (rateCushion < 0.5 || priceCushion < 0.06) cap = 61;   // at most Medium
+  if (rateCushion < 0.2 || priceCushion < 0.025) cap = 41;  // Low
+  score = Math.max(0, Math.min(cap, score));
   let level, label, explanation;
   if (score >= 62) {
     level = 'high'; label = 'High';
@@ -731,6 +739,26 @@ function calcConfidence(decision, breakEven, rateThreshold, priceThreshold, para
     explanation = 'This is a close call — the two paths are nearly equivalent financially.';
   }
   return { score, level, label, explanation };
+}
+
+// Verdict strength must match confidence: "clearly" only when the call survives realistic moves.
+function softenVerdict(verdict, level) {
+  if (level === 'high') return verdict;
+  const soft = {
+    'Renting and investing is clearly the stronger financial path right now.':
+      level === 'medium' ? 'Renting and investing is the stronger financial path right now.' : 'Renting and investing edges out buying on the numbers — but not by much.',
+    'Renting and investing the difference is the stronger financial move for now.':
+      level === 'medium' ? 'Renting and investing the difference is the stronger financial move for now.' : 'Renting and investing edges out buying for now — it\'s close.',
+    'Buying is cheaper monthly, but renting + investing wins clearly on total wealth.':
+      level === 'medium' ? 'Buying is cheaper monthly, but renting + investing wins on total wealth.' : 'Buying is cheaper monthly; renting + investing is narrowly ahead on total wealth.',
+    'Buying is financially favorable under your current assumptions.':
+      level === 'medium' ? 'Buying is favorable under your current assumptions.' : 'Buying is narrowly favorable — the margin is thin.',
+    'House hacking makes this a strong buy — cheaper than renting and ahead on wealth.':
+      level === 'medium' ? 'House hacking makes this a buy — cheaper than renting and ahead on wealth.' : 'House hacking puts buying narrowly ahead — cheaper than renting, thin wealth margin.',
+    'Buying costs more monthly, but the wealth-building makes up for it.':
+      level === 'medium' ? 'Buying costs more monthly, but the wealth-building makes up for it.' : 'Buying costs more monthly and only narrowly wins on wealth.',
+  };
+  return soft[verdict] || verdict;
 }
 
 // ---------- RECOMMENDATION ENGINE ----------
@@ -1190,6 +1218,8 @@ function calculate() {
     costInflationPct: $('costInflationPct') ? num('costInflationPct') : DEFAULT_COST_INFLATION,
     investTaxPct: $('investTaxPct') ? num('investTaxPct') : DEFAULT_INVEST_TAX,
     rentalUnits: $('rentalUnits') ? Math.max(1, num('rentalUnits') || 1) : 1,
+    investSharePct: $('investSharePct') ? Math.max(0, Math.min(100, num('investSharePct'))) : 100,
+    comparableRent: $('comparableRent') ? num('comparableRent') : 0,
   };
 
   const { homePrice, downPct, rate, term, taxPct, insuranceAnnual, maintPct, hoaMonthly,
@@ -1275,6 +1305,8 @@ function calculate() {
 
   // Confidence badge + explanation (F4)
   const confidence = calcConfidence(decision, breakEven, rateThreshold, priceThreshold, params);
+  decision.verdict = softenVerdict(decision.verdict, confidence.level);
+  $('dpVerdict').textContent = decision.verdict;
   const confBadge = $('dpConfBadge');
   confBadge.textContent = confidence.label;
   confBadge.className = 'dp-conf-badge conf-' + confidence.level;
@@ -1289,6 +1321,60 @@ function calculate() {
 
   // Decision plan metrics — wealthImpact comes from the SAME calcBuyVsRentWealth used by the panel
   const wi = decision.wealth5.wealthImpact;
+
+  // === PRICE-TO-RENT RATIO (the single most explanatory number) ===
+  const ptr = rent > 0 ? homePrice / (rent * 12) : 0;
+  if ($('kpiPtr')) {
+    $('kpiPtr').textContent = ptr ? ptr.toFixed(1) + '×' : '—';
+    const band = ptr < 15 ? 'Under 15× usually favors buying' : ptr <= 20 ? '15–20× is contested — the details decide' : 'Over 20× usually favors renting';
+    if ($('kpiPtrSublabel')) $('kpiPtrSublabel').textContent = `Home price ÷ annual rent. ${band}.`;
+  }
+
+  // === COMPARABLE-RENT CALLOUT (cheap apartment vs. a home like this one) ===
+  const cmpEl = $('dpComparable');
+  if (cmpEl) {
+    const cr = params.comparableRent;
+    if (cr > 0 && Math.abs(cr - rent) >= 50) {
+      const alt = calcBuyVsRentWealth(Object.assign({}, params, { rent: cr }), timeHorizon);
+      const a = alt.wealthImpact;
+      cmpEl.style.display = '';
+      let cmpText;
+      if (wi < 0 && a < 0) {
+        cmpText = `Measured against renting a home like this one at ${fmt(cr)}/mo instead of your ${fmt(rent)}/mo, renting is still ${fmt(Math.abs(a))} ahead over ${timeHorizon} years. ` +
+          `So of the ${fmt(Math.abs(wi))} gap, roughly <strong>${fmt(Math.abs(wi) - Math.abs(a))} is the cost of upgrading your housing</strong> and <strong>${fmt(Math.abs(a))} is the purchase itself</strong>.`;
+      } else if (wi < 0 && a >= 0) {
+        cmpText = `Measured against renting a home like this one at ${fmt(cr)}/mo instead of your ${fmt(rent)}/mo, <strong>buying comes out ${fmt(a)} ahead</strong> over ${timeHorizon} years. ` +
+          `The ${fmt(Math.abs(wi))} gap is the cost of upgrading your housing, not the purchase — buying this home is a fine way to do that upgrade if you're going to make it.`;
+      } else {
+        cmpText = `Against renting a home like this one at ${fmt(cr)}/mo instead of your ${fmt(rent)}/mo, buying is ${a >= 0 ? fmt(a) + ' ahead' : fmt(Math.abs(a)) + ' behind'} over ${timeHorizon} years (vs. ${fmtSigned(wi)} against your current rent).`;
+      }
+      cmpEl.innerHTML = `<div class="dp-narr-label">Against a comparable rental</div><div class="dp-narr-text">${cmpText}</div>`;
+    } else {
+      cmpEl.style.display = 'none';
+    }
+  }
+
+  // === LONG-HORIZON NOTE: at 20+ years the figure is two guessed rates compounded ===
+  const lhEl = $('dpLongHorizon');
+  if (lhEl) {
+    if (timeHorizon >= 20) {
+      const swingInv = Math.abs(calcBuyVsRentWealth(Object.assign({}, params, { investReturn: investReturn - 1 }), timeHorizon).wealthImpact - wi);
+      const swingApp = Math.abs(calcBuyVsRentWealth(Object.assign({}, params, { appreciationPct: appreciationPct + 1 }), timeHorizon).wealthImpact - wi);
+      const swing = Math.max(swingInv, swingApp);
+      const gain = decision.wealth5.homeValue - homePrice;
+      lhEl.style.display = '';
+      lhEl.innerHTML = `<div class="dp-narr-label">Read this as a range, not a number</div><div class="dp-narr-text">` +
+        `Over ${timeHorizon} years the result is driven mostly by the gap between your ${investReturn}% investment return and ${appreciationPct}% appreciation assumptions. ` +
+        `A single percentage point on either one moves this by roughly <strong>${fmt(Math.round(swing / 5000) * 5000)}</strong>. Trust the direction more than the dollar figure.` +
+        (gain > 500000 ? ` Also: the home's ${fmt(gain)} gain exceeds the $250K/$500K primary-residence exclusion, so part of it would be taxed — the model treats it as tax-free, which slightly favors buying here.` : '') +
+        `</div>`;
+    } else {
+      lhEl.style.display = 'none';
+    }
+  }
+
+  // === LEVERS: what would actually change this ===
+  renderLevers(params, wi);
   // === TIPPING-POINT DIAL ===
   // Needle angle ranges from -90° (full left = Rent strongly) to +90° (full right = Buy strongly).
   // Linear scale: $50K delta = full deflection. Small deltas visibly lean; genuine ties stay center.
@@ -1785,6 +1871,8 @@ function validateInputs() {
     ['expenseRatioPct', 'Operating Costs cannot be negative.'],
     ['costInflationPct', 'Cost inflation cannot be negative.'],
     ['investTaxPct', 'Tax on investment gains cannot be negative.'],
+    ['investSharePct', 'Share invested cannot be negative.'],
+    ['comparableRent', 'Comparable rent cannot be negative.'],
   ];
   for (const [id, msg] of nonNegFields) {
     const el = $(id);
@@ -2156,6 +2244,46 @@ function buildNarrative(decision, params, breakEven, wealth5, confidence) {
   return { tradeoff, timeInsight, riskNote };
 }
 
+// ---------- LEVERS — what would close the gap (or erase the lead) ----------
+// Achievable levers are things you can negotiate, choose, or verify. Assumption levers only
+// change the spreadsheet. Both are shown so the difference is obvious.
+function renderLevers(params, wi) {
+  const wrap = $('leversPanel');
+  if (!wrap) return;
+  const h = params.timeHorizon;
+  const run = (ov) => calcBuyVsRentWealth(Object.assign({}, params, ov), Math.max(1, ov.timeHorizon || h)).wealthImpact;
+  const buyWins = wi >= 0;
+  const p = params;
+  const hasHack = p.rentalIncome > 0;
+  const achievable = [
+    { label: `Price 5% lower (${fmt(p.homePrice * 0.95)})`, ov: { homePrice: p.homePrice * 0.95 } },
+    { label: `Price 10% lower (${fmt(p.homePrice * 0.90)})`, ov: { homePrice: p.homePrice * 0.90 } },
+    { label: `Rate 0.5% lower (${(p.rate - 0.5).toFixed(2)}%)`, ov: { rate: Math.max(0, p.rate - 0.5) } },
+    { label: `Rate 1% lower (${(p.rate - 1).toFixed(2)}%)`, ov: { rate: Math.max(0, p.rate - 1) } },
+    { label: `Down payment +5 pts (${Math.min(100, p.downPct + 5)}%)`, ov: { downPct: Math.min(100, p.downPct + 5) } },
+    hasHack
+      ? { label: `Rental income +$500/mo (${fmt(p.rentalIncome + 500)})`, ov: { rentalIncome: p.rentalIncome + 500 } }
+      : { label: 'Multi-family: $1,500/mo rental income', ov: { rentalIncome: 1500 } },
+    { label: `Stay 3 years longer (${h + 3} yrs)`, ov: { timeHorizon: h + 3 } },
+  ];
+  const assumptions = [
+    { label: `Appreciation +1 pt (${p.appreciationPct + 1}%)`, ov: { appreciationPct: p.appreciationPct + 1 } },
+    { label: `Investment return −1 pt (${p.investReturn - 1}%)`, ov: { investReturn: Math.max(0, p.investReturn - 1) } },
+    { label: `Rent growth +1 pt (${p.rentGrowthPct + 1}%)`, ov: { rentGrowthPct: p.rentGrowthPct + 1 } },
+    { label: `Only 50% of savings actually invested`, ov: { investSharePct: 50 } },
+  ];
+  const row = (l) => {
+    const v = run(l.ov); const d = v - wi; const flips = (v >= 0) !== buyWins;
+    return `<tr class="${flips ? 'lever-flip' : ''}"><td>${l.label}</td><td class="lever-val ${v >= 0 ? 'pos' : 'neg'}">${fmtSigned(v)}</td><td class="lever-delta">${d >= 0 ? '+' : '−'}${fmt(Math.abs(d))}${flips ? ' <span class="lever-tag">flips</span>' : ''}</td></tr>`;
+  };
+  $('leversTitle').textContent = buyWins ? 'What would erase buying\'s lead' : 'What would close the gap';
+  $('leversIntro').textContent = buyWins
+    ? `Buying is ${fmt(wi)} ahead over ${h} years. Each line re-runs the analysis with one change.`
+    : `Renting is ${fmt(Math.abs(wi))} ahead over ${h} years. Each line re-runs the analysis with one change — rows marked "flips" would make buying win.`;
+  $('leversAchievable').innerHTML = achievable.map(row).join('');
+  $('leversAssumptions').innerHTML = assumptions.map(row).join('');
+}
+
 // ---------- SAVED SCENARIOS ----------
 // A list, not two slots. Saving ALWAYS creates a new scenario — nothing is
 // overwritten unless you explicitly click "Update". Scenarios persist in this
@@ -2199,6 +2327,8 @@ const SCENARIO_INPUT_MAP = [
   ['costInflationPct', 'costInflationPct'],
   ['investTaxPct', 'investTaxPct'],
   ['rentalUnits', 'rentalUnits'],
+  ['investSharePct', 'investSharePct'],
+  ['comparableRent', 'comparableRent'],
 ];
 
 // Write a scenario's params back into the form inputs.
@@ -2209,7 +2339,7 @@ function loadScenarioIntoInputs(scen) {
     const el = $(inputId);
     if (!el || p[paramKey] === undefined || p[paramKey] === null) return;
     // Optional fields: 0 means "not entered" — keep them blank so validation passes
-    if ((inputId === 'annualIncome' || inputId === 'monthlyDebt') && !(p[paramKey] > 0)) { el.value = ''; return; }
+    if ((inputId === 'annualIncome' || inputId === 'monthlyDebt' || inputId === 'comparableRent') && !(p[paramKey] > 0)) { el.value = ''; return; }
     el.value = p[paramKey];
   });
   // Move-out year lives under its own key
@@ -2330,6 +2460,7 @@ function computeResultForParams(params) {
   const w = calcBuyVsRentWealth(p, p.timeHorizon);
   const decision = generateDecision(p, own, net, w.equityGross, breakEven);
   const confidence = calcConfidence(decision, breakEven, findRateThreshold(p), findPriceThreshold(p), p);
+  decision.verdict = softenVerdict(decision.verdict, confidence.level);
   return { params: p, totalOwnership: own, netCost: net, monthlyDiff: decision.monthlyDiff, wealth5: decision.wealth5, breakEven, decision, confidence };
 }
 
@@ -2594,6 +2725,8 @@ function resetForm() {
   if ($('costInflationPct')) $('costInflationPct').value = 3;
   if ($('investTaxPct')) $('investTaxPct').value = 15;
   if ($('rentalUnits')) $('rentalUnits').value = 1;
+  if ($('investSharePct')) $('investSharePct').value = 100;
+  if ($('comparableRent')) $('comparableRent').value = '';
   $('timeHorizon').value = 5;
   $('interestRate').value = 6.75;
   $('loanTerm').value = 30;

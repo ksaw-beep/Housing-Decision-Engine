@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=21">
+<link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
 
@@ -296,6 +296,32 @@
             <span class="input-bench">Historical market returns vary. Try 3–10%.</span>
           </div>
         </div>
+        <div class="input-row-2 advanced-only">
+          <div class="input-group">
+            <label for="investSharePct">Share of Savings You'd Actually Invest
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about share invested" aria-describedby="tip-investshare" title="Share invested" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-investshare">The renter's advantage assumes the monthly difference gets invested, not spent. Be honest: if you'd invest half and spend half, set 50%. Applies to both sides — a buyer whose payment is below rent gets the same treatment.</span>
+              </span>
+            </label>
+            <div class="input-wrap percent">
+              <input type="number" id="investSharePct" value="100" min="0" max="100" step="5">
+            </div>
+            <span class="input-bench">100% = perfect discipline. Most people are closer to 50–75%.</span>
+          </div>
+          <div class="input-group">
+            <label for="comparableRent">Rent for a Comparable Home (optional)
+              <span class="tip-wrap">
+                <button type="button" class="tip-btn" aria-label="More info about comparable rent" aria-describedby="tip-cmprent" title="Comparable rent" onclick="tipToggle(this)">?</button>
+                <span class="tip-content" role="tooltip" id="tip-cmprent">If your current rent is a cheap apartment and the home you're eyeing is much bigger, part of the gap is the upgrade, not the purchase. Enter what a home like this one would rent for and the decision plan shows the gap against that too.</span>
+              </span>
+            </label>
+            <div class="input-wrap dollar">
+              <input type="number" id="comparableRent" value="" min="0" step="50" placeholder="e.g. 3400">
+            </div>
+            <span class="input-bench">Leave blank to compare only against your current rent.</span>
+          </div>
+        </div>
       </div>
 
       <div class="panel advanced-only">
@@ -484,6 +510,8 @@
               <div class="dp-narr-label">Risk & Sensitivity</div>
               <div class="dp-narr-text" id="dpRiskNote"></div>
             </div>
+            <div class="dp-narr-block dp-narr-comparable" id="dpComparable" style="display:none;"></div>
+            <div class="dp-narr-block dp-narr-longhorizon" id="dpLongHorizon" style="display:none;"></div>
           </div>
           <div class="dp-metrics">
             <div class="dp-metric">
@@ -545,6 +573,12 @@
           <div class="kpi-card" style="--accent: var(--purple)">
             <div class="kpi-label">Current Monthly Rent</div>
             <div class="kpi-value" id="kpiRent">—</div>
+          </div>
+          <div class="kpi-card" style="--accent: var(--teal)">
+            <div class="kpi-label">Price-to-Rent Ratio
+              <span class="kpi-sublabel" id="kpiPtrSublabel">Home price ÷ annual rent</span>
+            </div>
+            <div class="kpi-value" id="kpiPtr">—</div>
           </div>
         </div>
         <div class="monthly-delta-headline" id="monthlyDeltaHeadline" aria-live="polite"></div>
@@ -774,6 +808,23 @@
           <div class="sens-summary" id="sensSummary"></div>
         </div>
 
+        <!-- ========== LEVERS ========== -->
+        <div class="panel levers-panel" id="leversPanel">
+          <h3 class="panel-title" id="leversTitle">What would close the gap</h3>
+          <p class="panel-subtitle" id="leversIntro"></p>
+          <div class="levers-grid">
+            <div class="levers-group">
+              <div class="levers-group-title">Things you can negotiate, choose, or verify</div>
+              <table class="levers-table"><thead><tr><th>Change</th><th>Result</th><th>vs. now</th></tr></thead><tbody id="leversAchievable"></tbody></table>
+            </div>
+            <div class="levers-group levers-group-assume">
+              <div class="levers-group-title">Assumptions — these change the spreadsheet, not the deal</div>
+              <table class="levers-table"><thead><tr><th>Change</th><th>Result</th><th>vs. now</th></tr></thead><tbody id="leversAssumptions"></tbody></table>
+            </div>
+          </div>
+          <p class="levers-foot">Use the first group to set your search criteria. Be suspicious of a purchase that only works in the second group.</p>
+        </div>
+
         <!-- ========== COST BREAKDOWN TABLE ========== -->
         <div class="panel">
           <h3 class="panel-title">Ownership Cost Breakdown</h3>
@@ -988,7 +1039,7 @@
 
 </div>
 
-<script src="script.js?v=24"></script>
+<script src="script.js?v=25"></script>
 <script data-goatcounter="https://housingdecisiontool.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>
