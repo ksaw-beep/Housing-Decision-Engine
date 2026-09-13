@@ -1150,11 +1150,16 @@ function renderWealthChart(params, breakEven) {
 
 // ---------- MAIN CALCULATION ----------
 
+function trackEvent(path, title) {
+  try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path, title, event: true }); } catch (_) {}
+}
+
 function calculate() {
   // ---------- INPUT VALIDATION (P6) ----------
   if (!validateInputs()) {
     return false;
   }
+  trackEvent('analyze', 'Analyze clicked');
 
   // Gather all inputs into a params object
   const params = {
@@ -1339,6 +1344,7 @@ function calculate() {
       : 'Same as Total Monthly Cost of Owning when no rental income';
   }
 
+  if ($('nsLoanAmt')) $('nsLoanAmt').textContent = '$' + Math.round(loanAmount / 1000) + 'K';
   // === CASH TO CLOSE ===
   $('ctcDP').textContent = fmt(downPayment);
   $('ctcClosing').textContent = fmt(closingCosts);
@@ -1556,7 +1562,7 @@ function calculate() {
     $('beBarFill').style.width = '100%';
     $('beBarFill').classList.add('be-bar-never');
     $('beBarMarker').style.display = 'none';
-    $('beDetail').textContent = `Under these assumptions, renting and investing stays ahead for the full ${beBarMax}-year window.`;
+    $('beDetail').textContent = '';
   }
 
   // Time horizon vs break-even warning
@@ -1614,8 +1620,8 @@ function calculate() {
   rateCard.classList.remove('sens-structural');
   $('sensRateIcon').textContent = '📉';
   $('sensRateTitle').textContent = 'Interest Rate Tipping Point';
-  const parityNote = rateThreshold.parityRate == null
-    ? ` Monthly cost never matches rent at any rate — at 0% you'd still pay ${fmt(rateThreshold.zeroNetCost != null ? rateThreshold.zeroNetCost : totalOwnership)}/mo.`
+  const parityNote = (rateThreshold.parityRate == null || rateThreshold.parityRate < 1)
+    ? ` Monthly cost alone never realistically matches rent — even at 0% you'd pay about ${fmt(rateThreshold.zeroNetCost != null ? rateThreshold.zeroNetCost : totalOwnership)}/mo.`
     : ` (Monthly cost alone matches rent at ${rateThreshold.parityRate}%.)`;
   if (rateThreshold.noThreshold) {
     $('sensRate').textContent = buyWins ? 'Any rate' : 'No rate helps';
@@ -1898,8 +1904,8 @@ function renderAffordability(params, totalOwnership) {
   const income = params.annualIncome || 0;
   const debt = params.monthlyDebt || 0;
   if (income <= 0) {
-    // Show panel with "add income to estimate DTI" hint
-    panel.style.display = '';
+    // Nothing to compute — keep the panel out of the way (inputs live under Advanced → Affordability)
+    panel.style.display = 'none';
     if ($('dtiValue')) $('dtiValue').textContent = '—';
     if ($('dtiBadge')) { $('dtiBadge').textContent = 'N/A'; $('dtiBadge').className = 'dti-badge'; }
     if ($('dtiBreakdown')) $('dtiBreakdown').textContent = 'Enter your Annual Household Income and Monthly Debt above to see your estimated debt-to-income (DTI) ratio. Missing income data prevents affordability analysis.';
@@ -2110,7 +2116,7 @@ function buildNarrative(decision, params, breakEven, wealth5, confidence) {
   // 1. KEY TRADEOFF — punchy and decisive, anchored on a real dollar amount.
   let tradeoff;
   if (decision.type === 'hack') {
-    tradeoff = `House hacking is the strongest play here: rental income drops your effective cost to ${fmt(decision.monthlyDiff + params.rent)}/mo while you still capture ~${fmt(wealth5.equity)} in equity over ${yrLabel}.`;
+    tradeoff = `Rental income drops your effective cost to ${fmt(decision.monthlyDiff + params.rent)}/mo, and buying finishes ~${wiAbs} ahead of renting over ${yrLabel} while building ~${fmt(wealth5.equity)} in equity (net of selling costs).`;
   } else if (isBuyRec && monthlyDiff <= 0) {
     tradeoff = `Buying wins on both fronts. You pay ${fmt(Math.abs(monthlyDiff))} less per month than rent AND you build equity — projected ${wiAbs} ahead of renting after ${yrLabel}.`;
   } else if (isBuyRec && monthlyDiff > 0) {
@@ -2245,6 +2251,7 @@ function buildShareLink() {
 }
 
 function copyShareLink() {
+  trackEvent('share-link', 'Share link copied');
   const url = buildShareLink();
   const toast = $('shareAnalysisToast');
   const done = function () {
@@ -2371,6 +2378,7 @@ function saveCurrentScenario() {
   activeScenarioId = id; activeFingerprint = readFormFingerprint(); scenarioDirty = false;
   if (input) input.value = '';
   persistScenarios(); updateScenarioUI();
+  trackEvent('scenario-saved', 'Scenario saved');
   flashScenarioNote(`Saved “${name}”.`);
 }
 

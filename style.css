@@ -1435,7 +1435,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .mode-btn {
   background: transparent;
   border: none;
-  padding: 7px 18px;
+  padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
   color: var(--muted, #7a6e65);
@@ -1929,8 +1929,8 @@ body.basic-mode .advanced-only { display: none !important; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #e8e2db;
   border: 1px solid #c8bfb4;
@@ -2351,3 +2351,130 @@ a:focus-visible,
   }
 }
 
+
+
+/* =====================================================================
+   V3 FACELIFT — typography, header, decision card, inputs
+   (appended so the cascade overrides earlier rules without surgery)
+   ===================================================================== */
+:root {
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --cream: #f7f3ee;
+}
+body { font-family: var(--font); }
+h1, h2, h3 { font-family: var(--font); }
+
+/* Header → slim bar */
+.header {
+  padding: 16px 28px;
+  gap: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-bottom: 3px solid var(--gold);
+  align-items: center;
+}
+.header-logo { height: 72px; }
+.header-left h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.header-left .subtitle { font-size: 13.5px; margin-top: 4px; }
+.scenario-summary { padding: 10px 6px; box-shadow: none; background: var(--cream); }
+.scenario-value { font-family: var(--font-display); font-weight: 600; font-size: 20px; }
+.scenario-item { padding: 2px 18px; }
+.btn-reset { padding: 8px 16px; font-size: 13px; border-radius: 8px; }
+
+/* Emoji icons read as amateur next to numbers — retire the large ones */
+.panel-icon, .dp-icon, .sens-icon, .placeholder-icon, .next-step-icon { display: none !important; }
+.panel-header { gap: 0; }
+
+/* Inputs */
+.input-group label { font-size: 13px; font-weight: 600; color: #3f3630; }
+.input-wrap input, .input-wrap.select select {
+  padding: 11px 14px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 8px;
+  border-color: var(--border2);
+}
+.input-wrap input:focus, .input-wrap.select select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(139,28,46,0.12); }
+.input-bench, .input-hint { font-size: 12px; }
+.btn-calculate {
+  border-radius: 10px;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  padding: 15px 24px;
+  background: var(--gold);
+  box-shadow: 0 6px 18px rgba(139,28,46,0.22);
+}
+.btn-calculate:hover { background: #6f1625; transform: none; box-shadow: 0 8px 22px rgba(139,28,46,0.28); }
+
+/* Empty state */
+.results-placeholder { padding: 72px 32px; }
+.placeholder-title { font-family: var(--font-display); font-weight: 600; font-size: 24px; color: var(--text); margin-bottom: 8px; }
+.results-placeholder p { color: var(--muted); }
+
+/* Decision card: white, one accent stripe, serif verdict */
+.decision-plan, .decision-plan.dp-buy, .decision-plan.dp-rent, .decision-plan.dp-hack {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 30px 32px 24px;
+  box-shadow: var(--shadow-lift);
+}
+.decision-plan::before { height: 5px; }
+.dp-header { gap: 0; margin-bottom: 14px; }
+.dp-label { letter-spacing: 0.12em; color: var(--muted); }
+.dp-recommendation-label { margin-top: 8px; }
+.dp-verdict {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.7rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  max-width: 34ch;
+}
+.dp-conf-badge { font-weight: 800; letter-spacing: 0.08em; }
+.dp-horizon { background: var(--cream); border: 1px solid var(--border); color: var(--gold); box-shadow: none; border-radius: 999px; padding: 8px 18px; }
+.tipping-dial { background: var(--cream); border: 1px solid var(--border); border-radius: 12px; }
+.tipping-dial-caption { font-weight: 600; }
+.dp-narrative { gap: 12px; margin: 18px 0; }
+.dp-narr-block { background: transparent; border-radius: 0; padding: 2px 0 2px 14px; border-left-width: 3px; }
+.dp-narr-label { font-size: 10.5px; }
+.dp-narr-text { font-size: 14.5px; line-height: 1.55; }
+.dp-metrics { gap: 12px; margin: 6px 0 18px; }
+.dp-metric { background: var(--cream); border: 1px solid var(--border); border-radius: 10px; padding: 14px 10px; }
+.dp-metric-label { font-size: 10px; letter-spacing: 0.08em; }
+.dp-metric-value { font-family: var(--font-display); font-weight: 600; font-size: 26px; letter-spacing: -0.01em; }
+.dp-action { background: var(--cream); border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.6; }
+.dp-disclaimer { background: transparent; border: none; padding: 8px 0 0; font-size: 12px; }
+
+/* Numbers everywhere get the display face */
+.kpi-card .kpi-value, .sens-answer, .wealth-line.total span:last-child, .be-highlight, .be-never, .dti-value, .compare-table td.cmp-strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.sens-answer { font-size: 30px; }
+.kpi-card { border-left-width: 3px; }
+.section-intro { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text); font-style: normal; }
+.panel-title { font-size: 11.5px; }
+.panel-subtitle { font-size: 13.5px; }
+
+/* Wealth cards: quieter tints */
+.wealth-card { border-radius: 12px; }
+.wealth-verdict { border-radius: 10px; font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+
+/* Chart + break-even */
+.chart-panel .panel-context, .breakeven-panel .panel-subtitle, .sens-summary, .panel-context { font-size: 13.5px; }
+
+/* Mobile adjustments for the new sizes */
+@media (max-width: 600px) {
+  .dp-verdict { font-size: 1.35rem; }
+  .decision-plan, .decision-plan.dp-buy, .decision-plan.dp-rent, .decision-plan.dp-hack { padding: 22px 18px 18px; }
+  .header-left h1 { font-size: 22px; }
+  .placeholder-title { font-size: 20px; }
+}

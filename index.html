@@ -6,7 +6,10 @@
 <title>Housing Decision Engine</title>
 <link rel="icon" type="image/png" href="../assets/logo.png">
 <link rel="apple-touch-icon" href="../assets/logo.png">
-<link rel="stylesheet" href="style.css?v=19">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
 
@@ -20,7 +23,7 @@
     </a>
     <div class="header-left">
       <h1>Your Personalized Housing Decision Plan</h1>
-      <p class="subtitle">Based on your inputs, here's what makes the most financial sense.</p>
+      <p class="subtitle">Buy, rent, or house-hack — decided on total wealth, not just the monthly payment.</p>
     </div>
     <div class="header-right">
       <div class="scenario-summary" id="scenarioSummary">
@@ -412,7 +415,7 @@
 
       <div class="results-placeholder" id="resultsPlaceholder">
         <div class="placeholder-icon">📊</div>
-        <p>Enter your details and click <strong>Analyze My Options</strong> to see your personalized comparison.</p>
+        <p class="placeholder-title">Your decision plan will appear here.</p><p>Enter a home price and your rent, then click <strong>Analyze My Options</strong>. Takes about 30 seconds.</p>
       </div>
 
       <div class="results-content" id="resultsContent" style="display:none;">
@@ -805,7 +808,7 @@
               <div class="next-step-icon">🏦</div>
               <div class="next-step-content">
                 <div class="next-step-title">Compare Lender Offers</div>
-                <div class="next-step-body">Even a 0.25% rate difference on a $350K loan saves thousands over 5 years. <a href="https://www.consumerfinance.gov/owning-a-home/explore-rates/" target="_blank" rel="noopener noreferrer" class="next-step-link">Explore rates →</a></div>
+                <div class="next-step-body">Even a 0.25% rate difference on a <span id="nsLoanAmt">$350K</span> loan saves thousands over a few years. <a href="https://www.consumerfinance.gov/owning-a-home/explore-rates/" target="_blank" rel="noopener noreferrer" class="next-step-link">Explore rates →</a></div>
               </div>
             </div>
             <div class="next-step-item">
@@ -830,7 +833,7 @@
           <details class="assumptions-details">
             <summary>
               <h3 class="panel-title assumptions-title">How This Decision Is Calculated</h3>
-              <span class="assumptions-hint">Tap to expand</span>
+              <span class="assumptions-hint">Expand</span>
             </summary>
           <p class="panel-subtitle">Every number below is driven by your inputs — nothing is hardcoded. Change an input and re-analyze to see how the numbers shift.</p>
           <div class="meth-grid">
@@ -872,7 +875,7 @@
           <details class="assumptions-details">
             <summary>
               <h3 class="panel-title assumptions-title">Assumptions &amp; Notes</h3>
-              <span class="assumptions-hint">Tap to expand</span>
+              <span class="assumptions-hint">Expand</span>
             </summary>
           <ul class="assumptions-list">
             <li>Mortgage calculated using standard amortization formula</li>
@@ -975,7 +978,7 @@
 
   <footer class="footer">
     <p>Housing Decision Engine &mdash; For educational purposes. Not financial advice.</p>
-    <p class="footer-privacy-line">All calculations run in your browser. We never see, store, or transmit your inputs.</p>
+    <p class="footer-privacy-line">All calculations run in your browser. We never see, store, or transmit your inputs. Anonymous page-view counts via GoatCounter — no cookies, no inputs collected.</p>
     <p class="footer-contact">
       <a href="../">&larr; Back to home</a>
       <span class="footer-sep" aria-hidden="true">·</span>
@@ -985,6 +988,7 @@
 
 </div>
 
-<script src="script.js?v=23"></script>
+<script src="script.js?v=24"></script>
+<script data-goatcounter="https://housingdecisiontool.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>
