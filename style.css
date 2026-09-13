@@ -1461,7 +1461,7 @@ body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }
 }
 .hero-headline { font-size: 50px; line-height: 1.1; }
 .section-title { font-size: 34px; line-height: 1.15; }
-.hero-logo { height: 96px; }
+.hero-logo { height: 150px; width: auto; max-width: none; }
 .audience-persona-icon, .feature-icon-large, .worked-scenario-icon, .demo-plan-icon, .demo-callout-icon, .worked-insight-icon, .consequence-icon, .proof-icon { display: none; }
 .hero-proof-item { gap: 0; }
 .hero-shot {
